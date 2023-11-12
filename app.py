@@ -25,16 +25,14 @@ def save_uploaded_file(uploaded_file):
     return None
 
 
-# Function to read and process file with multiple encodings
-
-
 def read_file(file_name, file_type='csv'):
     # List of encodings to try
     encodings = ['utf-8', 'latin-1', 'ISO-8859-1', 'utf-16']
     read_funcs = {
         'csv': pd.read_csv,
         'excel': pd.read_excel,
-        'txt': lambda file, enc: pd.read_csv(file, header=None, delimiter='\t', encoding=enc)
+        # Adjusting lambda for txt to accept encoding and header
+        'txt': lambda file, encoding, header: pd.read_csv(file, encoding=encoding, header=header, delimiter='\t')
     }
     read_args = {
         'csv': {'header': None},
@@ -45,7 +43,7 @@ def read_file(file_name, file_type='csv'):
     for encoding in encodings:
         try:
             df = read_funcs[file_type](
-                file_name, **read_args[file_type], encoding=encoding)
+                file_name, encoding=encoding, **read_args[file_type])
 
             return set_header(df, file_name)
         except UnicodeDecodeError as e:
@@ -53,6 +51,7 @@ def read_file(file_name, file_type='csv'):
             continue
     # If all encodings fail, raise the last exception
     raise last_exception
+
 
 # Function to set the header of the DataFrame
 
@@ -180,6 +179,7 @@ def main():
         st.session_state['cleaned_columns'] = []
         columns_to_clean_already = []
     else:
+        columns_to_clean = st.session_state['cleaned_columns']
         columns_to_clean_already = st.session_state['cleaned_columns']
 
     if 'removed_outlier_columns' not in st.session_state:
