@@ -1,42 +1,63 @@
 import streamlit as st
 
-# Title of the app
-st.title('Streamlit App')
+# Install Streamlit (if not installed) via command line: pip install streamlit
 
-# File uploader
-uploaded_file = st.file_uploader("Box to upload file")
+# Sample data for display purposes
+my_dataframe = {'Column1': [1, 2, 3], 'Column2': ['A', 'B', 'C']}
+my_image_path = 'path_to_image.png'  # Replace with the path to your image
+my_video_path = 'path_to_video.mp4'  # Replace with the path to your video
 
-# Multi-select boxes
-option1 = st.multiselect('Box to have multiselect', [
-                         'Option A', 'Option B', 'Option C'])
-option2 = st.multiselect('Box to have multiselect', [
-                         'Option 1', 'Option 2', 'Option 3'])
+# Main page layout
+st.title('Streamlit Cheat Sheet')
 
-# Checkboxes for run or not
-run_1 = st.checkbox('Run or not', key='1')
-run_2 = st.checkbox('Run or not', key='2')
+st.markdown('---')
 
-# Proceed button
-if st.button('Proceed'):
-    st.write('The app will proceed to run...')
+# Display text section
+st.header('Display text')
+st.text('Fixed width text')
+st.markdown('*Markdown*')  # see *
+st.caption('Balloons. Hundreds of them...')
+st.latex(r''' e^{i\pi} + 1 = 0 ''')
+st.write('Most objects')  # dataframe, err, func, keras!
+st.code('for i in range(8): foo()')
 
-# Button to add graph
-if st.button('Click to add more graph'):
-    # This is where you would add the logic to actually add and display more graphs
-    # For demonstration, I'm just showing a text placeholder
-    st.write('Graph placeholder')
+st.markdown('---')
 
-# Placeholder for graph selection and display
-graph_type = st.radio(
-    "Select either 2D curve or 3D scatterplot", ('2D Curve', '3D Scatterplot'))
+# Display data section
+st.header('Display data')
+st.dataframe(my_dataframe)
+st.json({'foo': 'bar', 'fu': 'ba'})
+st.metric(label="Temperature", value="273 K", delta="-1.2 K")
 
-# Display the graph based on the selected type
-if graph_type == '2D Curve':
-    # Here you would add your 2D curve plotting code
-    st.write('2D Curve Graph placeholder')
-elif graph_type == '3D Scatterplot':
-    # Here you would add your 3D scatterplot plotting code
-    st.write('3D Scatterplot Graph placeholder')
+st.markdown('---')
 
-# Run the Streamlit app from the command line using:
-# streamlit run your_script_name.py
+# Display media section
+st.header('Display media')
+st.image(my_image_path)
+st.audio(my_video_path)
+st.video(my_video_path)
+
+# Interactive widgets section
+st.header('Display interactive widgets')
+st.button('Hit me')
+st.checkbox('Check me out')
+st.radio('Pick one:', ['None', 'Earl'])
+st.selectbox('Select:', [1, 2, 3])
+st.multiselect('Multiselect:', [1, 2, 3])
+st.slider('Slide me', min_value=0, max_value=10)
+st.select_slider('Slide to select', options=[1, '2'])
+st.text_input('Enter some text')
+st.number_input('Enter a number')
+st.text_area('Area for textual entry')
+st.date_input('Date input')
+st.time_input('Time entry')
+st.file_uploader('File uploader')
+st.download_button('On the dl', data="text", file_name='sample.txt')
+st.camera_input("Take a picture")
+st.color_picker('Pick a color')
+
+# Sidebar widgets
+st.sidebar.header('Sidebar')
+st.sidebar.radio('Choose:', ['Option 1', 'Option 2'])
+
+# Run this script using: streamlit run your_script_name.py
