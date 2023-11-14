@@ -1,9 +1,11 @@
+from pandas.errors import EmptyDataError
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import numpy as np
 import pickle
 import os
+from unsupervised_learning import kmeans_cluster
 
 
 def save_uploaded_file(uploaded_file):
@@ -26,36 +28,44 @@ def save_uploaded_file(uploaded_file):
 
 
 def read_file(file_name, file_type='csv'):
-    # List of encodings to try
     encodings = ['utf-8', 'latin-1', 'ISO-8859-1', 'utf-16']
+    delimiters = [',', '\t', ';', ' ']
     read_funcs = {
         'csv': pd.read_csv,
         'excel': pd.read_excel,
-        # Adjusting lambda for txt to accept encoding and header
-        'txt': lambda file, encoding, header: pd.read_csv(file, encoding=encoding, header=header, delimiter='\t')
+        'txt': lambda file, encoding, header, delimiter: pd.read_csv(file, encoding=encoding, header=header, delimiter=delimiter)
     }
     read_args = {
         'csv': {'header': None},
         'excel': {'header': None},
         'txt': {'header': None}
     }
-    # Loop through encodings until the file is read successfully
-    for encoding in encodings:
-        try:
-            df = read_funcs[file_type](
-                file_name, encoding=encoding, **read_args[file_type])
 
-            return set_header(df, file_name)
-        except UnicodeDecodeError as e:
-            last_exception = e
-            continue
-    # If all encodings fail, raise the last exception
-    raise last_exception
+    last_unicode_exception = None
+    last_empty_data_exception = None
+
+    for encoding in encodings:
+        for delimiter in delimiters:
+            try:
+                df = read_funcs[file_type](
+                    file_name, encoding=encoding, header=read_args[file_type]['header'], delimiter=delimiter)
+                return set_header(df, file_name)
+            except UnicodeDecodeError as e:
+                last_unicode_exception = e
+                continue
+            except EmptyDataError as e:
+                last_empty_data_exception = e
+                continue
+
+        if last_empty_data_exception:
+            raise last_empty_data_exception
+        if last_unicode_exception:
+            raise last_unicode_exception
+
+    raise last_empty_data_exception if last_empty_data_exception else last_unicode_exception
 
 
 # Function to set the header of the DataFrame
-
-
 def set_header(df, file_name):
     df = df.copy()  # Create a copy of the DataFrame
     header = df.iloc[0].str.strip() + '__' + df.iloc[1].str.strip()
@@ -64,7 +74,10 @@ def set_header(df, file_name):
     df = df.iloc[2:]  # Remove the first two rows
     df.columns = header  # Set the new header
     # Get the file name (without extension)
-    file_name = file_name.split('.')[-2]
+    try:
+        file_name = file_name.split('.')[-2]
+    except AttributeError:
+        file_name = file_name.name.split('.')[-2]
     df.loc[:, "well"] = file_name
 
     return df
@@ -159,6 +172,18 @@ def load_state_file(state_file):
     st.session_state['loaded_count'] += 1
 
 
+def st_read_file(file_object):
+    st.write(f"From st_read_file function, Uploaded file is: {file_object}")
+
+    st.markdown("---")
+
+    file_type = file_object.name.split('.')[-1]
+
+    df = read_file(file_object, file_type)
+
+    return df
+
+
 def main():
 
     # if archive/temp.pkl exists, load it to session_state
@@ -191,6 +216,9 @@ def main():
     if "graphs" not in st.session_state:
         st.session_state["graphs"] = []
 
+    if "clusters" not in st.session_state:
+        st.session_state["clusters"] = []
+
     with st.sidebar:
 
         st.title("✨Data Analysis App")
@@ -212,19 +240,6 @@ def main():
 
                 if load_state_button:
                     load_state_file(state_file)
-                    # with open(f"archive/{state_file}", "rb") as f:
-                    #     loaded_state = pickle.load(f)
-
-                    #     # Clear st.session_state
-                    #     st.session_state.clear()
-
-                    #     # Load the state from saved file
-                    #     for key, value in loaded_state.items():
-                    #         st.session_state[key] = value
-
-                    # if 'loaded_count' not in st.session_state:
-                    #     st.session_state['loaded_count'] = 0
-                    # st.session_state['loaded_count'] += 1
 
         with st.expander("Save Your Work"):
             filename = st.text_input("Enter the filename")
@@ -270,16 +285,51 @@ def main():
 
         st.write("---")
 
-        uploaded_file = st.file_uploader(
-            "Choose a CSV file", type=["csv", "txt"])
+        uploaded_files = st.file_uploader(
+            "Choose files", type=["csv", "txt"], accept_multiple_files=True)
 
-    if uploaded_file is not None:
-        file_path = save_uploaded_file(uploaded_file)
-        if file_path:
-            st.session_state['loaded_file'] = file_path
+    if uploaded_files is not None:
+        if len(uploaded_files) == 1:
+            uploaded_file = uploaded_files[0]
+            file_path = save_uploaded_file(uploaded_file)
+            if file_path:
+                st.session_state['loaded_file'] = file_path
+        if len(uploaded_files) > 1:
+            dfs = []
+            file_names = []
+            count = 0
+            for uploaded_file in uploaded_files:
+                df = st_read_file(uploaded_file)
+                dfs.append(df)
+                file_names.append(uploaded_file.name.split('.')[-2])
+                count += 1
+                st.write(f"Successfully read file {count}")
+                # file_path = save_uploaded_file(uploaded_file)
+                # if file_path:
+                #     st.session_state[f'loaded_file_{i}'] = file_path
+
+            file_names_combined = f"{'_'.join(file_names)}.csv"
+            # Find the intersection of the columns of all dataframes
+            common_columns = set.intersection(*[set(df.columns) for df in dfs])
+
+            # Check if there are common columns
+            if common_columns:
+                # Select only the common columns from each dataframe and concatenate
+                df_concatenated = pd.concat(
+                    [df[list(common_columns)] for df in dfs], ignore_index=True)
+                files_combined_path = os.path.join(
+                    "uploaded_files", file_names_combined)
+                df_concatenated.to_csv(files_combined_path, index=False)
+                st.session_state['loaded_file'] = files_combined_path
+                st.write(
+                    f"Successfully combined files and save them to: {files_combined_path}")
+            else:
+                st.warning("No common headers found. Please check your files.")
+                st.stop()
 
     if st.session_state['loaded_file'] is not None:
-        st.write(f"Uploaded file is: {st.session_state['loaded_file']}")
+        st.write(
+            f"From upload saved work, Uploaded file is: {st.session_state['loaded_file']}")
 
         st.markdown("---")
 
@@ -316,7 +366,9 @@ def main():
                 st.session_state['removed_outlier_columns'] = column_to_remove_outliers
 
                 if not st.session_state['is_df_cleaned']:
+                    # Clean df based on the columns not cleaned yet
                     df = clean_df(df, column_to_clean_diff)
+                    # Update the columns already cleaned
                     columns_to_clean_already = columns_to_clean
 
                     # Get the base name and extension of the loaded file
@@ -391,6 +443,24 @@ def main():
 
             # Force a rerun of the app to reflect the updated state
             st.rerun()
+
+        # col1, col2 = st.columns(2)
+
+        # # Create the "Add Graph" button with a unique key derived from the length of the 'graphs' list
+        # if col1.button("Add Graph", key=f"add_graph_button_{st.session_state['loaded_count']}_{len(st.session_state['graphs'])}"):
+        #     # Append a new graph configuration to the list in session_state
+        #     st.session_state['graphs'].append({})
+
+        #     # Force a rerun of the app to reflect the updated state
+        #     st.rerun()
+        # # Create the "K-mean Cluster" button with a unique key derived from the length of the 'graphs' list
+        # if col2.button("K-mean Cluster", key=f"add_cluster_button_{st.session_state['loaded_count']}_{len(st.session_state['clusters'])}"):
+        #     # Append a new graph configuration to the list in session_state
+        #     cluster_number = st.text_input(
+        #         "Enter the number of clusters or leave it blank to find the optimal number of clusters")
+        #     if st.button("Proceed to Cluster"):
+        #         df = kmeans_cluster(df, columns_to_clean, cluster_number)
+        #     # Force a rerun of the app to reflect the updated state
 
 
 def select_columns(columns, plot_params, selected_plot_params, index):
