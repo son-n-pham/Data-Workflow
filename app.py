@@ -1,125 +1,18 @@
-from pandas.errors import EmptyDataError
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import numpy as np
 import pickle
 import os
 from unsupervised_learning import kmeans_cluster
+from file_handling import save_uploaded_file, read_file
+from data_wrangling import clean_df, prepare_data_for_plotting, remove_outliers
+
+st.set_page_config(
+    page_title="MSE Analysis", layout="wide", page_icon=":bar_chart:"
+)
 
 
-def save_uploaded_file(uploaded_file):
-    if uploaded_file is not None:
-        # Create a directory if it doesn't exist
-        directory = 'uploaded_files'
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        # Write the file to the new directory
-        file_path = os.path.join(directory, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-
-        # Get the absolute path
-        absolute_file_path = os.path.abspath(file_path)
-        return absolute_file_path
-
-    return None
-
-
-def read_file(file_name, file_type='csv'):
-    encodings = ['utf-8', 'latin-1', 'ISO-8859-1', 'utf-16']
-    delimiters = [',', '\t', ';', ' ']
-    read_funcs = {
-        'csv': pd.read_csv,
-        'excel': pd.read_excel,
-        'txt': lambda file, encoding, header, delimiter: pd.read_csv(file, encoding=encoding, header=header, delimiter=delimiter)
-    }
-    read_args = {
-        'csv': {'header': None},
-        'excel': {'header': None},
-        'txt': {'header': None}
-    }
-
-    last_unicode_exception = None
-    last_empty_data_exception = None
-
-    for encoding in encodings:
-        for delimiter in delimiters:
-            try:
-                df = read_funcs[file_type](
-                    file_name, encoding=encoding, header=read_args[file_type]['header'], delimiter=delimiter)
-                return set_header(df, file_name)
-            except UnicodeDecodeError as e:
-                last_unicode_exception = e
-                continue
-            except EmptyDataError as e:
-                last_empty_data_exception = e
-                continue
-
-        if last_empty_data_exception:
-            raise last_empty_data_exception
-        if last_unicode_exception:
-            raise last_unicode_exception
-
-    raise last_empty_data_exception if last_empty_data_exception else last_unicode_exception
-
-
-# Function to set the header of the DataFrame
-def set_header(df, file_name):
-    df = df.copy()  # Create a copy of the DataFrame
-    header = df.iloc[0].str.strip() + '__' + df.iloc[1].str.strip()
-    header = pd.Series(header).apply(lambda x: x if header.tolist().count(x) == 1
-                                     else x + '_' + str(header.tolist().index(x)))
-    df = df.iloc[2:]  # Remove the first two rows
-    df.columns = header  # Set the new header
-    # Get the file name (without extension)
-    try:
-        file_name = file_name.split('.')[-2]
-    except AttributeError:
-        file_name = file_name.name.split('.')[-2]
-    df.loc[:, "well"] = file_name
-
-    return df
-
-# Function to clean the DataFrame
-
-
-def clean_df(df, columns):
-    df = df.replace(-999.25, np.nan).dropna(subset=columns)
-    for column in columns:
-        df[column] = pd.to_numeric(df[column], errors='coerce')
-    return df
-
-# Function to remove outliers from the DataFrame
-
-
-def remove_outliers(df, columns):
-    for column in columns:
-        Q1 = df[column].quantile(0.25)
-        Q3 = df[column].quantile(0.75)
-        IQR = Q3 - Q1
-        df = df[(df[column] >= Q1 - 1.5*IQR) & (df[column] <= Q3 + 1.5*IQR)]
-    return df
-
-
-def prepare_data_for_plotting(df, columns):
-    # Create a copy of the dataframe with only the selected columns
-    columns = list(set(columns))
-    df_copy = df[columns].copy()
-
-    # Convert columns to numeric and drop rows where any column is NaN
-    df_copy = df_copy.apply(pd.to_numeric, errors='coerce').dropna()
-
-    if df_copy.empty:
-        st.warning(
-            "The selected data for plotting is empty after removing non-numeric or NaN values.")
-        return None
-
-    return df_copy
-
-
-# def plot_3d_scatter(df, x_col, y_col, z_col, color_col=None, size_col=None, width=800, height=800, marker_size=3):
 def plot_3d_scatter(df, x=None, y=None, z=None, color=None, size=None, width=800, height=800, marker_size=5, **kwargs):
     columns = [x, y, z, color, size]
     df_copy = prepare_data_for_plotting(df, columns)
@@ -127,7 +20,8 @@ def plot_3d_scatter(df, x=None, y=None, z=None, color=None, size=None, width=800
     if df_copy is not None:
         # Plotting
         fig = px.scatter_3d(df_copy, x=x, y=y,
-                            z=z, color=color, size=size)
+                            z=z, color=color, size=size,
+                            color_continuous_scale="Viridis", )
         fig.update_traces(marker=dict(size=marker_size))
         fig.update_layout(width=width, height=height)
 
@@ -140,7 +34,6 @@ def plot_3d_scatter(df, x=None, y=None, z=None, color=None, size=None, width=800
         st.plotly_chart(fig)
 
 
-# def plot_2d_scatter(df, x_col, y_col, color_col=None, size_col=None, width=800, height=800, marker_size=5):
 def plot_2d_scatter(df, x=None, y=None, color=None, size=None, width=800, height=800, marker_size=5, **kwargs):
     columns = [x, y, color, size]
     df_copy = prepare_data_for_plotting(df, columns)
