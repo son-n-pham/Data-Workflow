@@ -3,20 +3,15 @@ from scipy.optimize import minimize
 from sklearn.ensemble import RandomForestRegressor
 import pandas as pd
 from tqdm import tqdm
-import math
 
 # from .optimize_config import bounds, BIT_DIAMETER
 from config import config_constants
-from utils import get_columns_by_mnemonics
+from utils import get_columns_by_mnemonics, compute_mu, compute_mse
 
-
-# Function to compute MSE
-def compute_mse(wob, rpm, torque, rop):
-    wob_term = wob / ((config_constants["bit_diameter"]/2)**2 * math.pi)
-    torque_term = 480 * torque * rpm / \
-        (config_constants['bit_diameter']**2 * rop * 3.2808)
-
-    return wob_term + torque_term
+import warnings
+# Disable the specific warning
+warnings.filterwarnings(
+    "ignore", message="X does not have valid feature names, but StandardScaler was fitted with feature names")
 
 
 def get_random_initial_guess(bounds, X_mnemonics):
@@ -48,34 +43,35 @@ def minimize_objective_function(objective_function, initial_guess, bounds, X_mne
 
 def monte_carlo_optimization(df_with_clusters, scaler, trained_model, X_mnemonics, bounds, iterations):
     def objective_function(params):
-        # Convert the list of parameters to a dictionary
-        params_dict = {key.lower(): value for key,
-                       value in zip(X_mnemonics, params)}
+        wob_index = [i for i, m in enumerate(
+            X_mnemonics) if m.lower() == 'wob'][0]
+        rpm_index = [i for i, m in enumerate(
+            X_mnemonics) if m.lower() == 'rpm'][0]
+        torque_index = [i for i, m in enumerate(
+            X_mnemonics) if m.lower() == 'torque'][0]
+        mu_index = [i for i, m in enumerate(
+            X_mnemonics) if m.lower() == 'mu'][0]
 
-        # Access the parameters by their names, converted to lower case
-        wob = params_dict['wob']
-        rpm = params_dict['rpm']
-        torque = params_dict['torque']
+        params[mu_index] = compute_mu(
+            params[wob_index],
+            params[torque_index],
+            config_constants['bit_diameter'])
 
-        # Calculate 'Mu' if it's in X_mnemonics
-        if 'mu' in params_dict:
-            params_dict['mu'] = torque / \
-                (wob * 2.2 * config_constants['bit_diameter'] / 36)
+        params_reshaped = np.array(params).reshape(1, -1)
+
+        X_scaled = scaler.transform(params_reshaped)
 
         # Use all parameters in X_mnemonics for prediction
-        rop = trained_model.predict([list(params_dict.values())])[0]
+        rop = trained_model.predict(X_scaled)[0]
 
-        mse = compute_mse(wob, rpm, torque, rop)
+        mse = compute_mse(params[wob_index],
+                          params[rpm_index], params[torque_index], rop,
+                          config_constants['bit_diameter'])
         return mse
 
     results = []
     for _ in tqdm(range(iterations)):
         initial_guess = get_random_initial_guess(bounds, X_mnemonics)
-
-        initial_guess_df = pd.DataFrame(
-            [initial_guess], columns=get_columns_by_mnemonics(df_with_clusters, X_mnemonics))
-
-        scaler.transform(initial_guess_df)
 
         # Use the function before calling minimize_objective_function
         result = minimize_objective_function(
@@ -112,6 +108,9 @@ def print_results(cluster, param_ranges, low_mses):
 
 
 def get_bounds_for_cluster(original_data_with_clusters, X_mnemonics, cluster):
+    """Generate bounds for the parameters based on the data in the cluster
+    Except lithology, others have max value * 100 to allow the simulation
+    to explore the wide range of data"""
     bounds = {}
     for mnemonic in X_mnemonics:
         # Convert mnemonic to column header
