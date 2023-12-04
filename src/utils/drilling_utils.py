@@ -10,7 +10,11 @@ def compute_mu(wob, torque, bit_diameter):
     output:
         mu: mu
     """
-    return (torque / (wob * bit_diameter/36))
+    mu = torque / (wob * bit_diameter/36)
+    # # Debug print
+    # print(
+    #     f"TORQUE: {torque}, WOB: {wob}, Mu: {mu}")
+    return mu
 
 
 # Function to compute MSE

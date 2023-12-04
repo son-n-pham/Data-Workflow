@@ -7,7 +7,7 @@ def clean_df(df, columns, bit_diameter=8.5):
     """
     Cleans the DataFrame by handling zero values, non-numeric values, specific outliers, and missing values in specified columns.
 
-    This function drops rows where all specified columns are 0, converts the specified columns to numeric (handling non-numeric values by coercing them to NaN), replaces negative numbers with NaN, drops rows where any specified column is NaN, and adds a 'BIT_DIAMETER (in)' column if it doesn't exist.
+    This function drops rows where all specified columns are 0, converts the specified columns to numeric (handling non-numeric values by coercing them to NaN), replaces negative numbers or 0 with NaN, drops rows where any specified column is NaN, and adds a 'BIT_DIAMETER (in)' column if it doesn't exist.
 
     Parameters:
     df (pandas.DataFrame): The input DataFrame to be cleaned.
@@ -24,7 +24,7 @@ def clean_df(df, columns, bit_diameter=8.5):
     df[columns] = df[columns].apply(pd.to_numeric, errors='coerce')
 
     # Replace negative numbers with NaN
-    df[columns] = df[columns].map(lambda x: np.nan if x < 0 else x)
+    df[columns] = df[columns].map(lambda x: np.nan if x <= 0 else x)
 
     # Drop rows where any specified column is NaN
     df = df.dropna(subset=columns)

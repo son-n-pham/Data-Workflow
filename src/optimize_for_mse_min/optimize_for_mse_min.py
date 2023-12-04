@@ -1,3 +1,4 @@
+from scipy.optimize import Bounds
 import numpy as np
 from scipy.optimize import minimize
 from sklearn.ensemble import RandomForestRegressor
@@ -13,14 +14,21 @@ import warnings
 warnings.filterwarnings(
     "ignore", message="X does not have valid feature names, but StandardScaler was fitted with feature names")
 
+# Suppress only the RuntimeWarning from scipy.optimize
+warnings.filterwarnings(
+    "ignore", message="Values in x were outside bounds during a minimize step, clipping to bounds", category=RuntimeWarning)
+
 
 def get_random_initial_guess(bounds, X_mnemonics):
     initial_guess = []
     lithologies = ['si', 'shale', 'dolomite', 'limestone']
     for mnemonic in X_mnemonics:
+        # IMPORTANT to control the lower bound of WOB and Torque
+        # Ensure lower bound is never 0 by using max(0.0001, lower_bound)
+        low_bound = max(bounds[mnemonic][0], 1)
+        high_bound = bounds[mnemonic][1]
         # Generate a random value
-        initial_guess.append(np.random.uniform(
-            bounds[mnemonic][0], bounds[mnemonic][1]))
+        initial_guess.append(np.random.uniform(low_bound, high_bound))
 
     # Normalize the lithologies to sum to 100
     lithology_indices = [i for i, m in enumerate(
@@ -34,11 +42,37 @@ def get_random_initial_guess(bounds, X_mnemonics):
 
 def minimize_objective_function(objective_function, initial_guess, bounds, X_mnemonics):
     bounds_sequence = [bounds[mnemonic] for mnemonic in X_mnemonics]
+
+    # Indices for WOB, Torque, and Mu
+    wob_index = X_mnemonics.index('WOB')
+    torque_index = X_mnemonics.index('TORQUE')
+
+    # # Define constraints
+    # constraints = [
+    #     # WOB must be greater than 5 (soft control)
+    #     {'type': 'ineq', 'fun': lambda x: x[wob_index] - 10},
+    #     # Torque must be greater than 5 (soft control)
+    #     {'type': 'ineq', 'fun': lambda x: x[torque_index] - 5},
+    #     # Mu must be less than or equal to 1000, the constraint is implemented to avoid unphysically high Mu values
+    #     {'type': 'ineq', 'fun': lambda x: 1000 - x[torque_index] / (x[wob_index] * config_constants['bit_diameter']/36)},
+    # ]
+    constraints = [
+        # Increase WOB constraint
+        {'type': 'ineq', 'fun': lambda x: x[wob_index] - 15},
+        # Existing Torque constraint
+        {'type': 'ineq', 'fun': lambda x: x[torque_index] - 5},
+        # Adjust Mu constraint
+        {'type': 'ineq', 'fun': lambda x: 1000 - \
+            compute_mu(x[wob_index], x[torque_index], config_constants['bit_diameter'])}
+    ]
+
     return minimize(
         objective_function,
         initial_guess,
-        method='L-BFGS-B',
-        bounds=bounds_sequence)
+        method='SLSQP',  # A method that supports constraints
+        bounds=Bounds([b[0] for b in bounds_sequence], [b[1]
+                      for b in bounds_sequence]),
+        constraints=constraints)
 
 
 def monte_carlo_optimization(df_with_clusters, scaler, trained_model, X_mnemonics, bounds, iterations):
@@ -67,7 +101,18 @@ def monte_carlo_optimization(df_with_clusters, scaler, trained_model, X_mnemonic
         mse = compute_mse(params[wob_index],
                           params[rpm_index], params[torque_index], rop,
                           config_constants['bit_diameter'])
-        return mse
+
+        # IMPORTANT: Another constraint is implemented to avoid unphysically low WOB, Torque and Mu values
+        penalty = 0
+        if params[wob_index] < 10:
+            penalty += 1000000
+        if params[torque_index] < 5:
+            penalty += 1000000
+        if params[mu_index] > 1000:
+            penalty += 1000000
+
+        return mse + penalty
+        # return mse
 
     results = []
     for _ in tqdm(range(iterations)):
@@ -96,20 +141,33 @@ def get_param_ranges(low_mse_params, X_mnemonics):
     return param_ranges
 
 
-# Other functions (print_results, execute_monte_carlo_optimization, add_mse_min_to_original_data) remain the same.
-def print_results(cluster, param_ranges, low_mses):
+def print_results(cluster, params_data, mse_values, X_mnemonics):
     print(f'Cluster: {cluster}')
     print(f'Parameter Ranges for Low MSE:')
-    for param, (low, high) in param_ranges.items():
-        print(f'{param}: {low:.2f} to {high:.2f}')
+
+    for mnemonic in X_mnemonics:
+        param_values = params_data[mnemonic]
+        median = param_values.median()
+        Q1 = param_values.quantile(0.25)
+        Q3 = param_values.quantile(0.75)
+        IQR = Q3 - Q1
+
+        print(f'{mnemonic}: Median = {median:.2f}, IQR = {IQR:.2f}')
+
+    # Calculating and printing MSE information including min, max, median, and IQR
+    mse_min = mse_values.min()
+    mse_max = mse_values.max()
+    mse_median = mse_values.median()
+    mse_Q1 = mse_values.quantile(0.25)
+    mse_Q3 = mse_values.quantile(0.75)
+    mse_IQR = mse_Q3 - mse_Q1
     print(
-        f'Corresponding MSE Range: {low_mses.min():.2f} to {low_mses.max():.2f}')
-    print()
+        f'MSE: Min = {mse_min:.2f}, Max = {mse_max:.2f}, Median = {mse_median:.2f}, IQR = {mse_IQR:.2f}\n')
 
 
 def get_bounds_for_cluster(original_data_with_clusters, X_mnemonics, cluster):
     """Generate bounds for the parameters based on the data in the cluster
-    Except lithology, others have max value * 100 to allow the simulation
+    Except lithology, others have max value * 10000 to allow the simulation
     to explore the wide range of data"""
     bounds = {}
     for mnemonic in X_mnemonics:
@@ -119,7 +177,7 @@ def get_bounds_for_cluster(original_data_with_clusters, X_mnemonics, cluster):
         data_for_cluster = original_data_with_clusters[original_data_with_clusters['cluster']
                                                        == cluster][column_header]
         bounds[mnemonic] = (data_for_cluster.min(), data_for_cluster.max(
-        ) * (100 if mnemonic not in ['Si', 'Shale', 'Dolomite', 'Limestone'] else 1))
+        ) * (10000 if mnemonic not in ['Si', 'Shale', 'Dolomite', 'Limestone'] else 1))
     return bounds
 
 
@@ -138,7 +196,10 @@ def execute_monte_carlo_optimization(df_with_clusters, scalers_best_models, X_mn
         low_mse_params, low_mses = monte_carlo_optimization(df_with_clusters,
                                                             scaler, trained_model, X_mnemonics, bounds, iterations)
         param_ranges = get_param_ranges(low_mse_params, X_mnemonics)
-        print_results(cluster, param_ranges, low_mses)
+        # Create a DataFrame from the low_mse_params for easier computation of median and IQR
+        df_low_mse_params = pd.DataFrame(low_mse_params, columns=X_mnemonics)
+        print_results(cluster, df_low_mse_params,
+                      pd.Series(low_mses), X_mnemonics)
         clusters[int(cluster)] = {
             'param_ranges': param_ranges,
             'low_mses': low_mses,

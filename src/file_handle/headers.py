@@ -33,11 +33,14 @@ def analyze_context(mnemonic, unit):
     """
     # Contextual analysis logic goes here
     # Example:
+    if "__unidentified" in mnemonic:
+        return f"{mnemonic} ({unit})"
+
     if "TEMP" in mnemonic:
         return "TEMPERATURE (C)" if "c" in unit.lower() else "TEMPERATURE (F)"
 
     # Mark as unidentified if no contextual rule applies
-    return f"{mnemonic}__unidentified ({unit})"  # Changed here
+    return f"{mnemonic}__unidentified ({unit})"
 
 
 def analyze_rpm_context(mnemonic, unit, rpm_values):

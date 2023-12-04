@@ -1,5 +1,6 @@
 import pandas as pd
 from . import headers, units, units_config
+import streamlit as st
 
 
 def load_file_into_dataframe(file_path):
@@ -45,16 +46,9 @@ def load_file_and_merge_headers(file_path):
     # Load the dataset, assuming the first two rows are header and units
     data = load_file_into_dataframe(file_path)
 
-    # Display the first few rows of the dataset to understand its structure
-    print("The first few rows of the original dataset are:")
-    print(data.head())
-
     # Extracting headers and units
     headers = [header.strip() for header in data.columns.get_level_values(0)]
     units = [unit.strip() for unit in data.columns.get_level_values(1)]
-
-    # Creating a data dictionary
-    data_dictionary = {header: unit for header, unit in zip(headers, units)}
 
     # Modifying the DataFrame to have a single header row
     # Concatenating mnemonic and unit to create a unique identifier for each column
@@ -63,3 +57,13 @@ def load_file_and_merge_headers(file_path):
     data.columns = new_columns
 
     return data
+
+
+def st_read_file(file_path):
+    st.write(f"From st_read_file function, Uploaded file is: {file_path}")
+
+    st.markdown("---")
+
+    df = load_file_and_merge_headers(file_path)
+
+    return df
