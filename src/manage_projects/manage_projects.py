@@ -34,13 +34,6 @@ def handle_save_project(temp_directory=temp_directory, projects_directory=projec
         new_project_directory = os.path.join(projects_directory, project_name)
         copy_folder(temp_directory, new_project_directory)
 
-        print(f"Current state before saving: {st.session_state}")
-        # Check pickle file in the new project directory
-        loaded_state = load_pickle_file_to_dict(
-            os.path.join(new_project_directory, "state_folder/state.pkl"))
-        print(f"loaded state after saving: {loaded_state}")
-        print("HLLLO")
-
         st.success(f"The {project_name} is saved!")
 
         st.rerun()
