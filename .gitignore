@@ -3,7 +3,7 @@ catboost_info
 data
 temp
 !temp_folder
-!temp_fodler/README.md
+!temp_folder/README.md
 temp_folder/*
 !projects
 !projects/README.md
