@@ -69,6 +69,10 @@ def save_cleaned_df_to_file_and_update_session_state(cleaned_df):
         each_project_folders['cleaned_data_folder']),
         os.path.basename(st.session_state['loaded_file']))
 
+    ensure_directory_exists(os.path.join(os.path.join(
+        temp_directory,
+        each_project_folders['cleaned_data_folder'])))
+
     # Save cleaned df to cleaned_data_folder in temp_folder
     unmerge_df_headers_and_save_file(cleaned_df, cleaned_file_path)
 

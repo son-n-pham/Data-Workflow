@@ -1,3 +1,12 @@
+# Misc
+catboost_info
+data
+temp
+!temp_folder
+temp_folder/*
+!projects
+projects/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
