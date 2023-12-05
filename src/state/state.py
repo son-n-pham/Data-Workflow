@@ -1,156 +1,128 @@
+from datetime import datetime
 import os
 import streamlit as st
-import pickle
 import json
 
 from config import temp_directory, each_project_folders
 from utils import ensure_directory_exists, load_pickle_file_to_dict
+from feature_registry import GraphFeature, Feature, FEATURE_REGISTRY
+
+
+def serialize_feature_obj(obj):
+    """Serialize custom objects to a dictionary, including the class name."""
+    if hasattr(obj, "__dict__"):
+        obj_dict = {key: serialize_feature_obj(
+            value) for key, value in obj.__dict__.items()}
+        # Include the class name for deserialization
+        obj_dict["__class__"] = obj.__class__.__name__
+        return obj_dict
+    elif isinstance(obj, datetime):
+        return obj.isoformat()
+    return obj
+
+
+def deserialize_feature_obj(d):
+    feature_classes = FEATURE_REGISTRY
+
+    if 'type' in d and d['type'] in feature_classes:
+        return feature_classes[d['type']].from_dict(d)
+    else:
+        return d
+
+
+def save_state_file_to_json(state_file='state.json', folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
+    file_path = os.path.join(folder, state_file)
+    # Create folder if it does not exist
+    ensure_directory_exists(folder)
+
+    """Save the current session state to a JSON file."""
+    with open(file_path, "w") as file:
+        json.dump(dict(st.session_state), file, default=serialize_feature_obj)
+
+
+def clear_session_state_values():
+    keys = list(st.session_state.keys())
+    st.session_state.clear()
+    for key in keys:
+        st.session_state[key] = None
 
 
 def load_state_file_from_json(state_file='state.json',
                               state_folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
+
     json_file_path = os.path.join(state_folder, state_file)
     if not os.path.exists(json_file_path):
         st.error(
             f"State file {state_file} does not exist in the directory {state_folder}")
         return
 
-    with open(json_file_path, "r") as f:
-        loaded_state = json.load(f)
+    clear_session_state_values()
 
-        # Clear st.session_state
-        st.session_state.clear()
-
-        for key, value in loaded_state.items():
-            st.session_state[key] = value
-
-    # if 'loaded_count' not in st.session_state:
-    #     st.session_state['loaded_count'] = 0
-    st.session_state['loaded_count'] += 1
+    """Load the session state from a JSON file."""
+    with open(json_file_path, "r") as file:
+        state_dict = json.load(file, object_hook=deserialize_feature_obj)
+        for key, value in state_dict.items():
+            if key in st.session_state:
+                st.session_state[key] = value
 
 
-# def load_state_file(state_file='state.pkl',
-#                     state_folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
-#     """
-#     Load a saved state from a file and update the Streamlit session state.
+# def deserialize_state(serialized_state):
+#     # This function should be adapted based on how you serialized your state
+#     state = {}
+#     for key, value in serialized_state.items():
+#         # Implement custom deserialization for complex objects
+#         if is_custom_object(value):
+#             # Assuming you've implemented a deserialize method
+#             state[key] = GraphFeature.deserialize(value)
+#         else:
+#             state[key] = value
+#     return state
 
-#     This function loads a pickled Python object from a file and updates the
-#     Streamlit session state with the loaded state. If the file does not exist,
-#     an error message is displayed in the Streamlit app.
 
-#     Parameters
-#     ----------
-#     state_file : str
-#         The name of the state file to load.
-#     folder : str, optional
-#         The directory where the state file is located. By default, this is
-#         set to os.path.join(temp_directory,each_project_folders["state_folder"]).
-
-#     Returns
-#     -------
-#     None
-#     """
-#     # Function implementation...
-#     file_path = os.path.join(state_folder, state_file)
-#     if not os.path.exists(file_path):
+# def load_state_file_from_json(state_file='state.json',
+#                               state_folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
+#     json_file_path = os.path.join(state_folder, state_file)
+#     if not os.path.exists(json_file_path):
 #         st.error(
 #             f"State file {state_file} does not exist in the directory {state_folder}")
 #         return
 
-#     # with open(file_path, "rb") as f:
-#     #     loaded_state = pickle.load(f)
+#     with open(json_file_path, "r") as f:
+#         state_dict = json.load(f)
 
-#     print("#############################################")
+#     for key, value in state_dict.items():
+#         if isinstance(value, dict) and "plot_type" in value:  # This is a GraphFeature
+#             state_dict[key] = GraphFeature.from_dict(value)
+#         elif isinstance(value, list) and all(isinstance(item, dict) and "plot_type" in item for item in value):
+#             state_dict[key] = [GraphFeature.from_dict(item) for item in value]
+#     st.session_state.update(state_dict)
 
-#     print(f"LOAD STATE FILE: current session state: {st.session_state}")
-
-#     loaded_state = load_pickle_file_to_dict(file_path)
-
-#     print(
-#         f"LOAD STATE FILE: loaded_state from file {file_path}: {loaded_state}")
-
-#     # Clear st.session_state
-#     st.session_state.clear()
-
-#     # Load the state from saved file into session state
-#     for key, value in loaded_state.items():
-#         print(f"LOAD STATE FILE __ k and v: {key} and {value}")
-#         st.session_state[key] = value
-
-#     if 'loaded_count' not in st.session_state:
-#         st.session_state['loaded_count'] = 0
+#     # if 'loaded_count' not in st.session_state:
+#     #     st.session_state['loaded_count'] = 0
 #     st.session_state['loaded_count'] += 1
 
-#     print(
-#         f"LOAD STATE FILE: After loading, current session state: {st.session_state}")
+
+# def serialize_state(state):
+#     # This function should be adapted based on the content of your session_state
+#     serialized_state = {}
+#     for key, value in state.items():
+#         # Implement custom serialization for complex objects, ie.GraphFeature
+#         if isinstance(value, GraphFeature):
+#             # Assuming you've implemented a serialize method
+#             serialized_state[key] = value.to_dict()
+#         else:
+#             serialized_state[key] = value
+#     return serialized_state
 
 
-def save_state_file_to_json(state_file='state.json', folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
-    """
-    Save the current Streamlit session state to a file.
-
-    This function saves the current Streamlit session state to a file. If the
-    file already exists, the user is prompted to confirm overwriting the file.
-
-    Parameters
-    ----------
-    state_file : str
-        The name of the state file to save.
-    folder : str, optional
-        The directory where the state file is located. By default, this is
-        set to os.path.join(temp_directory,each_project_folders["state_folder"]).
-
-    Returns
-    -------
-    None
-    """
-
-    print("*****save_state_file is running*****")
-    # Function implementation...
-    file_path = os.path.join(folder, state_file)
-
-    # Create folder if it does not exist
-    ensure_directory_exists(folder)
-
-    with open(file_path, "w") as f:
-        json.dump(dict(st.session_state), f)
-
-
-# def save_state_file(state_file='state.pkl', folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
-#     """
-#     Save the current Streamlit session state to a file.
-
-#     This function saves the current Streamlit session state to a file. If the
-#     file already exists, the user is prompted to confirm overwriting the file.
-
-#     Parameters
-#     ----------
-#     state_file : str
-#         The name of the state file to save.
-#     folder : str, optional
-#         The directory where the state file is located. By default, this is
-#         set to os.path.join(temp_directory,each_project_folders["state_folder"]).
-
-#     Returns
-#     -------
-#     None
-#     """
-
-#     print("*****save_state_file is rusnning*****")
+# def save_state_file_to_json(state_file='state.json', folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
 #     # Function implementation...
 #     file_path = os.path.join(folder, state_file)
-
 #     # Create folder if it does not exist
 #     ensure_directory_exists(folder)
 
-#     with open(file_path, "wb") as f:
-#         pickle.dump(st.session_state, f)
-
-#     state_from_saved_pickle_file = load_pickle_file_to_dict(file_path)
-#     print(
-#         f"IMPORTANT!!! SAVE STATE FILE: state_from_saved_pickle_file: {state_from_saved_pickle_file}")
-
-#     st.success(f"State saved to {file_path}")
+#     with open(file_path, "w") as f:
+#         json.dump(serialize_state(st.session_state), f)
 
 
 def delete_state_file(state_file,

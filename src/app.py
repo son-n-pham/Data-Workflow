@@ -1,12 +1,7 @@
 
 import streamlit as st
 import pandas as pd
-import os
-import shutil
-import pickle
-import json
 
-from plot import plot_2d_scatter, plot_3d_scatter
 
 import config
 from config import temp_directory, each_project_folders, projects_directory, root_directory
@@ -16,6 +11,7 @@ from data_wrangle import clean_df, prepare_data_for_plotting, remove_outliers
 from manage_projects import handle_load_project, handle_save_project, handle_delete_project
 from state import load_state_file_from_json, ensure_key_in_session_state
 from app_interface import show_sidebar
+from feature_registry import GraphFeature, ClusteringFeature, ModellingFeature, PredictingMSEMinFeature, OptimizingParametersFeature, FEATURE_REGISTRY
 from utils import ensure_directory_exists, list_sub_folders, copy_folder, delete_folder, load_pickle_file_to_dict
 
 
@@ -35,6 +31,7 @@ def main():
     ensure_key_in_session_state('graphs', [])
     ensure_key_in_session_state('clusters', [])
     ensure_key_in_session_state('loaded_count', 0)
+    ensure_key_in_session_state('features', [])
 
     columns_to_clean_already = ensure_key_in_session_state(
         'cleaned_columns', [])
@@ -127,75 +124,78 @@ def main():
 
         st.markdown("---")
 
-        for i, graph in enumerate(st.session_state["graphs"]):
+        for i, feature in enumerate(st.session_state["features"]):
             with st.container():
-                st.markdown(f"### Graph {i}")
-                graph["id"] = i
-                graph["type"] = st.radio("Select graph type", [
-                    "2D Scatter Plot", "3D Scatter Plot"], key=f"graph_type_{i}")
+                st.markdown(f"### Feature {i}")
 
-                if 'columns' in graph:
-                    selected_plot_params = graph['columns']
-                else:
-                    selected_plot_params = None
+                # Check if feature is GraphFeature
+                if isinstance(feature, GraphFeature):
+                    feature.select_plot_type()
+                    feature.select_columns(columns_to_clean)
 
-                graph["columns"] = select_columns(
-                    columns_to_clean, plot_types[graph["type"]], selected_plot_params, i)
+                    # Plot button
+                    button_key_plot = f"plot_{st.session_state['loaded_count']}_{i}"
+                    plot_clicked = st.button("Plot", key=button_key_plot)
 
-                if "plot_clicked" not in graph:
-                    graph["plot_clicked"] = False
+                    if feature.activated or plot_clicked:
+                        with st.spinner(f"Plotting {feature.plot_type}..."):
+                            feature.execute(df)
+                            feature.activated = True
 
-                button_key_plot = f"plot_{st.session_state['loaded_count']}_{i}"
-                plot_clicked = st.button(
-                    "Plot", key=button_key_plot)
-                # plot_clicked = st.button(
-                #     "Plot", key=f"plot_graph_{st.session_state['loaded_count']}_{i}")
+                        # Update the feature in the session state
+                        st.session_state["features"][i] = feature
 
-                if plot_clicked:
-                    graph["plot_clicked"] = True
+                st.markdown("---")  # Separator after each feature
 
-                if graph["plot_clicked"]:
-                    with st.spinner(f"Plotting {graph['type']}..."):
-                        if graph["type"] == "2D Scatter Plot":
-                            plot_2d_scatter(df, **graph["columns"])
-                        elif graph["type"] == "3D Scatter Plot":
-                            plot_3d_scatter(df, **graph["columns"])
+        col1, col2 = st.columns(2)
 
-                st.markdown("---")  # Separator after each graph
+        selected_feature_name = st.selectbox(
+            "Select feature to add", list(FEATURE_REGISTRY.keys()))
 
-        # Create the "Add Graph" button with a unique key derived from the length of the 'graphs' list
-        if st.button("Add Graph", key=f"add_graph_button_{st.session_state['loaded_count']}_{len(st.session_state['graphs'])}"):
-            # Append a new graph configuration to the list in session_state
-            st.session_state['graphs'].append({})
+        if selected_feature_name:
 
-            # Force a rerun of the app to reflect the updated state
-            st.rerun()
+            selected_feature_class = FEATURE_REGISTRY[selected_feature_name]
 
+            # Create the "Add Graph" button with a unique key derived from the length of the 'graphs' list
+            if st.button("Add Analysis Feature", key=f"add_feature_button_{st.session_state['loaded_count']}_{len(st.session_state['features'])}"):
 
-def select_columns(columns, plot_params, selected_plot_params, index):
-    selected_columns = {}
-    cols = st.columns(len(plot_params))  # Create a row of columns
+                selected_feature = selected_feature_class(
+                    name=selected_feature_name)
 
-    for i, param in enumerate(plot_params):
-        # Place each select box in a separate column
-        if selected_plot_params is None or param not in selected_plot_params:
-            selected_columns[param] = cols[i].selectbox(
-                f"Select {param} column", columns, key=f"{param}_{index}_{i}"
-            )
-        else:
-            default_index = columns.index(
-                selected_plot_params[param]) if selected_plot_params[param] in columns else 0
-            selected_columns[param] = cols[i].selectbox(
-                f"Select {param} column", columns, index=default_index, key=f"{param}_{index}_{i}"
-            )
-    return selected_columns
+                # Append a new feature configuration to the list in session_state
+                st.session_state['features'].append(selected_feature)
+
+                # # Append a new graph configuration to the list in session_state
+                # st.session_state['features'].append({})
+
+                # Force a rerun of the app to reflect the updated state
+                st.rerun()
 
 
-plot_types = {
-    "2D Scatter Plot": ["x", "y", "color", "size"],
-    "3D Scatter Plot": ["x", "y", "z", "color", "size"],
-    # Add more plot types and their parameters here
-}
+# plot_types = {
+#     "2D Scatter Plot": ["x", "y", "color", "size"],
+#     "3D Scatter Plot": ["x", "y", "z", "color", "size"],
+#     # Add more plot types and their parameters here
+# }
+
+
+# def select_columns(columns, plot_params, selected_plot_params, index):
+#     selected_columns = {}
+#     cols = st.columns(len(plot_params))  # Create a row of columns
+
+#     for i, param in enumerate(plot_params):
+#         # Place each select box in a separate column
+#         if selected_plot_params is None or param not in selected_plot_params:
+#             selected_columns[param] = cols[i].selectbox(
+#                 f"Select {param} column", columns, key=f"{param}_{index}_{i}"
+#             )
+#         else:
+#             default_index = columns.index(
+#                 selected_plot_params[param]) if selected_plot_params[param] in columns else 0
+#             selected_columns[param] = cols[i].selectbox(
+#                 f"Select {param} column", columns, index=default_index, key=f"{param}_{index}_{i}"
+#             )
+#     return selected_columns
 
 
 if __name__ == "__main__":
