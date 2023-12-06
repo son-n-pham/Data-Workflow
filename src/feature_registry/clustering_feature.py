@@ -20,7 +20,6 @@ class ClusteringFeature(Feature):
 
     def set_feature_parameters(self, columns, k):
         col1, col2, col3 = st.columns(3)
-
         # col1 is to select the columns to perform clustering on
         # multiselect is used to select multiple columns from the list
         # of cleaned_columns in session state

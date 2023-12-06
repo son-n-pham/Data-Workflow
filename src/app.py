@@ -134,16 +134,17 @@ def main():
                     feature.set_feature_parameters(columns_to_clean)
 
                     # Plot button
-                    button_key_plot = f"plot_{st.session_state['loaded_count']}_{i}"
+                    button_key_plot = f"plot_{feature.created_at}_{st.session_state['loaded_count']}_{i}"
                     plot_clicked = st.button("Plot", key=button_key_plot)
 
-                    if feature.activated or plot_clicked:
-                        with st.spinner(f"Plotting {feature.plot_type}..."):
-                            feature.execute(df)
-                            feature.activated = True
-
+                    if plot_clicked:
                         # Update the feature in the session state
                         st.session_state["features"][i] = feature
+                        feature.activated = True
+
+                    if feature.activated:
+                        with st.spinner(f"Plotting {feature.plot_type}..."):
+                            feature.execute(df)
 
                 st.markdown("---")  # Separator after each feature
 

@@ -27,9 +27,19 @@ class GraphFeature(Feature):
         else:
             raise ValueError(f"Unknown plot type: {self.plot_type}")
 
+        st.write(self.plot_type)
+        st.write(self.parameters)
+
     def select_plot_type(self):
+
+        if self.activated:
+            default_plot_type = list(
+                self.plot_types.keys()).index(self.plot_type)
+        else:
+            default_plot_type = 0
+
         self.plot_type = st.radio("Select plot type", list(
-            self.plot_types.keys()), key=f"plot_type_{self.name}_{self.created_at}")
+            self.plot_types.keys()), default_plot_type, key=f"plot_type_{self.name}_{self.created_at}")
 
     def set_feature_parameters(self, columns):
         selected_columns = {}

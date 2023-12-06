@@ -1,3 +1,14 @@
+# Misc
+catboost_info
+data
+temp
+!temp_folder
+!temp_folder/README.md
+temp_folder/*
+!projects
+!projects/README.md
+projects/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
