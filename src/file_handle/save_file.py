@@ -80,6 +80,22 @@ def save_cleaned_df_to_file_and_update_session_state(cleaned_df):
     st.session_state['loaded_file'] = cleaned_file_path
 
 
+def save_clustered_df_to_file_and_update_session_state(clustered_df):
+    """
+    Clustering is applied to the cleaned DataFrame and the clustered DataFrame is saved to a CSV file.
+
+    As clustering is only added clustered columns but not change the original cleaned DataFrame, it is fine to save the clustered DataFrame to a CSV file
+    with the same name as the cleaned DataFrame.
+
+    Parameters:
+    clustered_df (pandas.DataFrame): The clustered DataFrame to be saved.
+
+    Returns:
+    None
+    """
+    save_cleaned_df_to_file_and_update_session_state(clustered_df)
+
+
 def unmerge_df_headers_and_save_file(df, file_path):
     """
     Splits the headers of a DataFrame and saves the DataFrame to a CSV file.

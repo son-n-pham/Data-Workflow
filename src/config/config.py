@@ -50,8 +50,10 @@ header_patterns = {
     "Limestone": r".*Limestone.*",
     "BIT_DIAMETER": r"BIT_DIAMETER",
     "Mu": r".*Mu.*",
-    "VOLUME": None,  # We'll set this dynamically in the get_volume_pattern function
+    "VOLUME": None,
+    # We'll set this dynamically in the get_volume_pattern function
     # ... rest of your patterns ...
+    "cluster": r".*cluster.*"
 }
 
 

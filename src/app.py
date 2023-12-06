@@ -3,10 +3,8 @@ import streamlit as st
 import pandas as pd
 
 
-import config
-from config import temp_directory, each_project_folders, projects_directory, root_directory
-from file_handle import save_uploaded_file, save_cleaned_df_to_file_and_update_session_state, load_file_and_merge_headers, st_read_file, load_file_standardize_header
-# from file_handle import save_uploaded_file, read_file, st_read_file
+from file_handle import save_uploaded_file, save_cleaned_df_to_file_and_update_session_state, load_file_standardize_header
+from file_handle import save_clustered_df_to_file_and_update_session_state
 from data_wrangle import clean_df, prepare_data_for_plotting, remove_outliers
 from manage_projects import handle_load_project, handle_save_project, handle_delete_project
 from state import load_state_file_from_json, ensure_key_in_session_state
@@ -43,7 +41,7 @@ def main():
 
     uploaded_files = show_sidebar()
 
-    if uploaded_files is not None:
+    if uploaded_files is not None and st.session_state['loaded_file'] is None:
 
         # When uploading 1 file, save the file to uploaded_fodler first
         # then update session_state['loaded_file']
@@ -55,13 +53,6 @@ def main():
                 st.session_state['loaded_file'] = file_path
 
     if st.session_state['loaded_file'] is not None:
-
-        # # Re-assign st.session_state['loaded_file'] to the cleaned file
-        # if st.session_state['is_df_cleaned']:
-        #     st.session_state['loaded_file'] = os.path.join(os.path.join(
-        #         temp_directory,
-        #         each_project_folders['cleaned_data_folder']),
-        #         os.path.basename(st.session_state['loaded_file']))
 
         # For debug
         st.write(
@@ -120,7 +111,7 @@ def main():
 
     if st.session_state.get('is_df_cleaned', False):
 
-        columns_to_clean = st.session_state['cleaned_columns']
+        cleaned_columns = st.session_state['cleaned_columns']
 
         st.markdown("---")
 
@@ -131,7 +122,7 @@ def main():
                 # Check if feature is GraphFeature
                 if isinstance(feature, GraphFeature):
                     feature.select_plot_type()
-                    feature.set_feature_parameters(columns_to_clean)
+                    feature.set_feature_parameters(cleaned_columns)
 
                     # Plot button
                     button_key_plot = f"plot_{feature.created_at}_{st.session_state['loaded_count']}_{i}"
@@ -146,11 +137,34 @@ def main():
                         with st.spinner(f"Plotting {feature.plot_type}..."):
                             feature.execute(df)
 
+                # Check if feature is ClusteringFeature
+                if isinstance(feature, ClusteringFeature):
+                    feature.set_feature_parameters(cleaned_columns)
+
+                    # Cluster button
+                    button_key_cluster = f"cluster_{feature.created_at}_{st.session_state['loaded_count']}_{i}"
+                    cluster_clicked = st.button(
+                        "Cluster", key=button_key_cluster)
+
+                    if cluster_clicked:
+                        # Update the feature in the session state
+                        st.session_state["features"][i] = feature
+                        feature.activated = True
+                        with st.spinner("Clustering..."):
+                            df = feature.execute(df)
+                            st.session_state['cleaned_columns'].append(
+                                'cluster ()')
+                            save_clustered_df_to_file_and_update_session_state(
+                                df)
+
+                    if feature.activated:
+                        st.success("Clustering completed!")
+
                 st.markdown("---")  # Separator after each feature
 
         col1, col2 = st.columns(2)
 
-        selected_feature_name = st.selectbox(
+        selected_feature_name = col1.selectbox(
             "Select feature to add", list(FEATURE_REGISTRY.keys()))
 
         if selected_feature_name:
@@ -173,31 +187,6 @@ def main():
                 st.rerun()
 
 
-# plot_types = {
-#     "2D Scatter Plot": ["x", "y", "color", "size"],
-#     "3D Scatter Plot": ["x", "y", "z", "color", "size"],
-#     # Add more plot types and their parameters here
-# }
-
-
-# def set_feature_parameters(columns, plot_params, selected_plot_params, index):
-#     selected_columns = {}
-#     cols = st.columns(len(plot_params))  # Create a row of columns
-
-#     for i, param in enumerate(plot_params):
-#         # Place each select box in a separate column
-#         if selected_plot_params is None or param not in selected_plot_params:
-#             selected_columns[param] = cols[i].selectbox(
-#                 f"Select {param} column", columns, key=f"{param}_{index}_{i}"
-#             )
-#         else:
-#             default_index = columns.index(
-#                 selected_plot_params[param]) if selected_plot_params[param] in columns else 0
-#             selected_columns[param] = cols[i].selectbox(
-#                 f"Select {param} column", columns, index=default_index, key=f"{param}_{index}_{i}"
-#             )
-#     return selected_columns
-
-
+#
 if __name__ == "__main__":
     main()
