@@ -4,9 +4,10 @@ import streamlit as st
 from datetime import datetime
 import json
 import os
+from abc import ABC, abstractmethod
 
 
-class Feature:
+class Feature(ABC):
     def __init__(self, name: str, type: str, description: str, parameters: dict, activated: bool = False):
         self.name = name
         self.type = type
@@ -14,6 +15,10 @@ class Feature:
         self.parameters = parameters
         self.created_at = datetime.now().isoformat()  # Use ISO format for serialization
         self.activated = activated
+
+    @abstractmethod
+    def set_feature_parameters(self, *args, **kwargs):
+        pass
 
     def execute(self, *args, **kwargs):
         raise NotImplementedError(

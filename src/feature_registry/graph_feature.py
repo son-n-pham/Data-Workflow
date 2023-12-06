@@ -31,7 +31,7 @@ class GraphFeature(Feature):
         self.plot_type = st.radio("Select plot type", list(
             self.plot_types.keys()), key=f"plot_type_{self.name}_{self.created_at}")
 
-    def select_columns(self, columns):
+    def set_feature_parameters(self, columns):
         selected_columns = {}
         # Create a row of columns
         cols = st.columns(len(self.plot_types[self.plot_type]))

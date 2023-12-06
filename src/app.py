@@ -131,7 +131,7 @@ def main():
                 # Check if feature is GraphFeature
                 if isinstance(feature, GraphFeature):
                     feature.select_plot_type()
-                    feature.select_columns(columns_to_clean)
+                    feature.set_feature_parameters(columns_to_clean)
 
                     # Plot button
                     button_key_plot = f"plot_{st.session_state['loaded_count']}_{i}"
@@ -179,7 +179,7 @@ def main():
 # }
 
 
-# def select_columns(columns, plot_params, selected_plot_params, index):
+# def set_feature_parameters(columns, plot_params, selected_plot_params, index):
 #     selected_columns = {}
 #     cols = st.columns(len(plot_params))  # Create a row of columns
 
