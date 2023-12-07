@@ -1,46 +1,21 @@
 ### How to add a feature
 
-Here is an example of adding clustering feature:
+This is a step-by-step guide on how to add a clustering feature to your project:
 
-- I have the cluster module available in src
-- Create clustering_feature.py in feature_registry module
-- In clustering_feature.py, create class ClusteringFeature which inherit base class Feature
-- Open cluster module to check if it require more attributes than the base's attributes
-  - ![Alt text](image.png)
-  - As cheking, it requires attribute columns which is a list and k of integer or None. Those can be stored in parameters.
-- Fill in the ClusteringFeature class:
+1. Ensure that the `cluster` module is available in the `src` directory.
 
-```python
-class ClusteringFeature(Feature):
-    def __init__(self, name: str, parameters: dict = None):
-        super().__init__(name, "Clustering", "Performs clustering on the data", parameters)
+2. Create a new file named `clustering_feature.py` in the `feature_registry` module.
 
-    def execute(self, df):
-        # Call the perform_kmeans function from the cluster module
-        df = perform_kmeans(
-            df, self.parameters['columns'], self.parameters['k'])
-        return df
+3. In `clustering_feature.py`, define a new class `ClusteringFeature` that inherits from the base class `Feature`.
 
-    def to_dict(self):
-        data = super().to_dict()
-        return data
+4. Review the `cluster` module to identify any additional attributes it requires beyond those provided by the base class `Feature`.
 
-    @classmethod
-    def from_dict(cls, data):
-        # Create a new GraphFeature object
-        feature = cls(
-            name=data["name"],
-            parameters=data["parameters"],
-        )
+   - ![Alt text](image.png)
+   - Upon review, it's determined that the module requires an attribute `columns` (which is a list) and `k` (which can be an integer or `None`). These attributes can be stored in the `parameters` dictionary. The resulting `silhouette_score` will also be stored in `parameters`.
 
-        # Set the properties of the GraphFeature object based on the values in the dictionary
-        feature.description = data["description"]
-        feature.created_at = datetime.strptime(
-            data["created_at"], "%Y-%m-%dT%H:%M:%S.%f")
-        feature.activated = data["activated"]
-        feature.type = data["type"]
+5. Implement the `ClusteringFeature` class, ensuring to include the additional attributes identified in the previous step.
 
-        return feature
-```
+6. Register the new feature in the `feature_registry.py` file.
 
--
+7. In `app.py`, invoke the new feature:
+   - The DataFrame resulting from the clustering operation should overwrite the existing file in the `clean_folder` of the `temp_folder`. This allows the clustered DataFrame to be used in subsequent steps.

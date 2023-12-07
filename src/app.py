@@ -5,9 +5,9 @@ import pandas as pd
 
 from file_handle import save_uploaded_file, save_cleaned_df_to_file_and_update_session_state, load_file_standardize_header
 from file_handle import save_clustered_df_to_file_and_update_session_state
-from data_wrangle import clean_df, prepare_data_for_plotting, remove_outliers
-from manage_projects import handle_load_project, handle_save_project, handle_delete_project
-from state import load_state_file_from_json, ensure_key_in_session_state
+from data_wrangle import clean_df, add_columns, remove_outliers
+# from manage_projects import handle_load_project, handle_save_project, handle_delete_project
+from state import ensure_key_in_session_state
 from app_interface import show_sidebar
 from feature_registry import GraphFeature, ClusteringFeature, ModellingFeature, PredictingMSEMinFeature, OptimizingParametersFeature, FEATURE_REGISTRY
 from utils import ensure_directory_exists, list_sub_folders, copy_folder, delete_folder, load_pickle_file_to_dict
@@ -62,6 +62,10 @@ def main():
 
         df = load_file_standardize_header(
             st.session_state['loaded_file'])
+
+        st.write("Add columns BIT_DIAMETER (in), DOC (in/rev), Mu (), and MSE (ksi)")
+
+        df = add_columns(df)
 
         st.write(df)
 
@@ -144,7 +148,7 @@ def main():
                     # Cluster button
                     button_key_cluster = f"cluster_{feature.created_at}_{st.session_state['loaded_count']}_{i}"
                     cluster_clicked = st.button(
-                        "Cluster", key=button_key_cluster)
+                        "Proceed Clustering", key=button_key_cluster)
 
                     if cluster_clicked:
                         # Update the feature in the session state
@@ -158,6 +162,9 @@ def main():
                                 df)
 
                     if feature.activated:
+                        if feature.parameters['silhouette_scores']:
+                            feature.plot_sihouetteS_score(
+                                feature.parameters['silhouette_scores'])
                         st.success("Clustering completed!")
 
                 st.markdown("---")  # Separator after each feature
