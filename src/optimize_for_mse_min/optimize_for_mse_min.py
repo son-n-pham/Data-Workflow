@@ -47,15 +47,6 @@ def minimize_objective_function(objective_function, initial_guess, bounds, X_mne
     wob_index = X_mnemonics.index('WOB')
     torque_index = X_mnemonics.index('TORQUE')
 
-    # # Define constraints
-    # constraints = [
-    #     # WOB must be greater than 5 (soft control)
-    #     {'type': 'ineq', 'fun': lambda x: x[wob_index] - 10},
-    #     # Torque must be greater than 5 (soft control)
-    #     {'type': 'ineq', 'fun': lambda x: x[torque_index] - 5},
-    #     # Mu must be less than or equal to 1000, the constraint is implemented to avoid unphysically high Mu values
-    #     {'type': 'ineq', 'fun': lambda x: 1000 - x[torque_index] / (x[wob_index] * config_constants['bit_diameter']/36)},
-    # ]
     constraints = [
         # Increase WOB constraint
         {'type': 'ineq', 'fun': lambda x: x[wob_index] - 15},

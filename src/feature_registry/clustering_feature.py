@@ -3,6 +3,8 @@ import pandas as pd
 import streamlit as st
 from .features import Feature
 from cluster import perform_kmeans
+from config import config_constants
+from file_handle import save_clustered_df_to_file_and_update_session_state, load_file_standardize_header
 
 
 class ClusteringFeature(Feature):
@@ -10,48 +12,86 @@ class ClusteringFeature(Feature):
         super().__init__(name, "Clustering", "Performs clustering on the data", parameters)
         self.parameters = parameters or {}
 
-    def execute(self, df):
-        self.parameters["silhouette_scores"] = []
+    def execute(self, df, feature_session_state):
 
+        clustered_columns, k = self.set_feature_parameters(
+            st.session_state['cleaned_columns'],
+            feature_session_state)
+
+        # If the user has selected columns for clustering and clicked the "Proceed Clustering" button,
+        # set the parameters and activate the feature
+        if clustered_columns and st.button("Proceed Clustering"):
+            self.parameters['clustered_columns'] = clustered_columns
+            self.parameters['k'] = k
+            self.activated = True
+
+            # Call the perform_kmeans function from the cluster module
+            df_new = self.kmeans_clustering(df)
+
+            # Append 'cluster ()' to cleaned_columns in session state
+            if 'cluster ()' not in st.session_state['cleaned_columns']:
+                st.session_state['cleaned_columns'].append('cluster ()')
+
+            df_new = save_clustered_df_to_file_and_update_session_state(
+                df_new)
+
+        # If the feature is activated and self.parameters['silhouette_scores']
+        # is not an empty list, plot the silhouette scores
+        if self.activated:
+
+            df = load_file_standardize_header(st.session_state['loaded_file'])
+
+            # Update feature_session_state
+            feature_session_state.parameters['clustered_columns'] = self.parameters['clustered_columns']
+            feature_session_state.parameters['k'] = self.parameters['k']
+            feature_session_state.parameters['silhouette_score'] = self.parameters['silhouette_score']
+            feature_session_state.activated = self.activated
+
+            if self.parameters['silhouette_score']:
+                st.write(
+                    f"self.parameters['silhouette_score'] is: {self.parameters['silhouette_score']}")
+                self.plot_silhouette_scores(
+                    self.parameters['silhouette_score'])
+
+            st.success("Clustering has been done!")
+
+            return df
+
+    def kmeans_clustering(self, df):
         # Call the perform_kmeans function from the cluster module
-        df_new, self.parameters["silhouette_scores"], self.parameters['k'] = self.kmeans(
-            df)
-
-        return df_new
-
-    def kmeans(self, df):
-        # Call the perform_kmeans function from the cluster module
-        df, silhouette_score, k = perform_kmeans(
-            df, self.parameters['columns'],
+        df, self.parameters['silhouette_score'], self.parameters['k'] = perform_kmeans(
+            df, self.parameters['clustered_columns'],
             self.parameters['k'],
-            self.parameters['k_min'],
-            self.parameters['k_max'])
-        return df, silhouette_score, k
+            config_constants['k_min'],
+            config_constants['k_max'])
+        return df
 
-    def set_feature_parameters(self, cleaned_columns):
+    def set_feature_parameters(self, cleaned_columns, feature_session_state):
         col1, col2, col3 = st.columns(3)
-        # col1 is to select the columns to perform clustering on
-        # multiselect is used to select multiple columns from the list
-        # of cleaned_columns in session state
-        self.parameters['columns'] = col2.multiselect(
-            "Select columns to perform clustering on", cleaned_columns)
-        # col2 is check box to select whether to use optimal k or not
-        # if checked, k is set to None; otherwise, activate col3
-        # col3 is to select the value of k by getting input from user using slider
-        self.parameters['k_min'] = 2
-        self.parameters['k_max'] = 11
-        if col1.checkbox("Select number of clusters automatically"):
-            self.parameters['k'] = None
-        else:
-            self.parameters['k'] = col3.slider(
-                "Select k", min_value=self.parameters['k_min'], max_value=self.parameters['k_max'], value=3)
 
-    def plot_sihouetteS_score(self, silhouette_scores):
+        clustered_columns = col2.multiselect(
+            "Select columns to perform clustering on",
+            cleaned_columns,
+            feature_session_state.parameters.get('clustered_columns', []),
+        )
+
+        disabled_k_slider = col1.checkbox(
+            "Select number of clusters automatically")
+        k = None if disabled_k_slider else col3.slider(
+            "Select k",
+            min_value=config_constants['k_min'],
+            max_value=config_constants['k_max'],
+            value=3,
+            disabled=disabled_k_slider)
+
+        return clustered_columns, k
+
+    def plot_silhouette_scores(self, silhouette_scores):
         # plot silhouette score to scatter plot if silhouette_scores is not an empty list
         if silhouette_scores:
             # Convert the silhouette scores to a DataFrame with an appropriate index
             silhouette_scores_df = pd.DataFrame(silhouette_scores, index=range(
-                self.parameters['k_min'], self.parameters['k_min'] + len(silhouette_scores)))
+                config_constants['k_min'], config_constants['k_min'] + len(silhouette_scores)))
 
             # Plot the silhouette scores
             st.line_chart(silhouette_scores_df)

@@ -116,12 +116,13 @@ def main():
     if st.session_state.get('is_df_cleaned', False):
 
         cleaned_columns = st.session_state['cleaned_columns']
+        st.write(df.head())
 
         st.markdown("---")
 
         for i, feature in enumerate(st.session_state["features"]):
             with st.container():
-                st.markdown(f"### Feature {i}")
+                st.markdown(f"### {feature.name} {i}")
 
                 # Check if feature is GraphFeature
                 if isinstance(feature, GraphFeature):
@@ -133,39 +134,25 @@ def main():
                     plot_clicked = st.button("Plot", key=button_key_plot)
 
                     if plot_clicked:
+                        feature.activated = True
                         # Update the feature in the session state
                         st.session_state["features"][i] = feature
-                        feature.activated = True
 
                     if feature.activated:
                         with st.spinner(f"Plotting {feature.plot_type}..."):
-                            feature.execute(df)
+                            fig = feature.execute(df)
+                            st.plotly_chart(fig, use_container_width=True)
 
                 # Check if feature is ClusteringFeature
-                if isinstance(feature, ClusteringFeature):
-                    feature.set_feature_parameters(cleaned_columns)
+                elif isinstance(feature, ClusteringFeature):
+                    df = feature.execute(df, st.session_state["features"][i])
 
-                    # Cluster button
-                    button_key_cluster = f"cluster_{feature.created_at}_{st.session_state['loaded_count']}_{i}"
-                    cluster_clicked = st.button(
-                        "Proceed Clustering", key=button_key_cluster)
-
-                    if cluster_clicked:
-                        # Update the feature in the session state
-                        st.session_state["features"][i] = feature
-                        feature.activated = True
-                        with st.spinner("Clustering..."):
-                            df = feature.execute(df)
-                            st.session_state['cleaned_columns'].append(
-                                'cluster ()')
-                            save_clustered_df_to_file_and_update_session_state(
-                                df)
-
+                # Check if feature is ModellingFeature
+                elif isinstance(feature, ModellingFeature):
+                    df, scalers_best_models = feature.execute(
+                        df, st.session_state['features'][i])
                     if feature.activated:
-                        if feature.parameters['silhouette_scores']:
-                            feature.plot_sihouetteS_score(
-                                feature.parameters['silhouette_scores'])
-                        st.success("Clustering completed!")
+                        st.success("Modelling completed!")
 
                 st.markdown("---")  # Separator after each feature
 
@@ -173,6 +160,12 @@ def main():
 
         selected_feature_name = col1.selectbox(
             "Select feature to add", list(FEATURE_REGISTRY.keys()))
+
+        # For DEBUG
+        show_df = col2.button(
+            "Open df", key=f"open_df_{st.session_state['loaded_count']}")
+        if show_df:
+            st.write(df)
 
         if selected_feature_name:
 

@@ -74,10 +74,12 @@ def save_cleaned_df_to_file_and_update_session_state(cleaned_df):
         each_project_folders['cleaned_data_folder'])))
 
     # Save cleaned df to cleaned_data_folder in temp_folder
-    unmerge_df_headers_and_save_file(cleaned_df, cleaned_file_path)
+    df = unmerge_df_headers_and_save_file(cleaned_df, cleaned_file_path)
 
     # Update st.session_state['loaded_file'] to the cleaned file
     st.session_state['loaded_file'] = cleaned_file_path
+
+    return df
 
 
 def save_clustered_df_to_file_and_update_session_state(clustered_df):
@@ -93,7 +95,7 @@ def save_clustered_df_to_file_and_update_session_state(clustered_df):
     Returns:
     None
     """
-    save_cleaned_df_to_file_and_update_session_state(clustered_df)
+    return save_cleaned_df_to_file_and_update_session_state(clustered_df)
 
 
 def unmerge_df_headers_and_save_file(df, file_path):
@@ -123,3 +125,5 @@ def unmerge_df_headers_and_save_file(df, file_path):
     new_df.sort_index(inplace=True)
 
     new_df.to_csv(file_path, index=False)
+
+    return new_df
