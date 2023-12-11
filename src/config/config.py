@@ -17,7 +17,10 @@ each_project_folders = {
 }
 
 config_constants = {
-    'bit_diameter': 8.5
+    'bit_diameter': 8.5,
+    # clustering
+    'k_min': 2,
+    'k_max': 11,
 }
 
 

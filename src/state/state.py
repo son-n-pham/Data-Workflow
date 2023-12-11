@@ -10,6 +10,7 @@ from feature_registry import GraphFeature, Feature, FEATURE_REGISTRY
 
 def serialize_feature_obj(obj):
     """Serialize custom objects to a dictionary, including the class name."""
+    st.write(obj)
     if hasattr(obj, "__dict__"):
         obj_dict = {key: serialize_feature_obj(
             value) for key, value in obj.__dict__.items()}
@@ -35,9 +36,25 @@ def save_state_file_to_json(state_file='state.json', folder=os.path.join(temp_di
     # Create folder if it does not exist
     ensure_directory_exists(folder)
 
+    dict_session_state = dict(st.session_state)
+
     """Save the current session state to a JSON file."""
     with open(file_path, "w") as file:
-        json.dump(dict(st.session_state), file, default=serialize_feature_obj)
+        json.dump(dict_session_state, file, default=serialize_feature_obj)
+
+# def convert_keys_to_string(dictionary):
+#     if not isinstance(dictionary, dict):
+#         return dictionary
+#     return {str(k): convert_keys_to_string(v) for k, v in dictionary.items()}
+
+
+# def save_state_file_to_json(state_file='state.json', folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
+#     file_path = os.path.join(folder, state_file)
+#     ensure_directory_exists(folder)
+
+#     with open(file_path, "w") as file:
+#         json.dump(convert_keys_to_string(st.session_state),
+#                   file, default=serialize_feature_obj)
 
 
 def clear_session_state_values():
