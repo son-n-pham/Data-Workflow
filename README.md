@@ -33,7 +33,7 @@ Streamlit is used as the GUI for the app.
 To run the main application, use the following command:
 
 ```bash
-streamlit src/app.py
+streamlit run src/app.py
 ```
 
 ## License
