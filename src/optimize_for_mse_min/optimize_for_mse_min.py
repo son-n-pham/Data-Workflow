@@ -132,9 +132,10 @@ def get_param_ranges(low_mse_params, X_mnemonics):
     return param_ranges
 
 
-def print_results(cluster, params_data, mse_values, X_mnemonics):
-    print(f'Cluster: {cluster}')
-    print(f'Parameter Ranges for Low MSE:')
+def print_results(cluster, params_data, mse_values, X_mnemonics,
+                  progress_callback=print):
+    progress_callback(f'Cluster: {cluster}')
+    progress_callback(f'Parameter Ranges for Low MSE:')
 
     for mnemonic in X_mnemonics:
         param_values = params_data[mnemonic]
@@ -143,7 +144,8 @@ def print_results(cluster, params_data, mse_values, X_mnemonics):
         Q3 = param_values.quantile(0.75)
         IQR = Q3 - Q1
 
-        print(f'{mnemonic}: Median = {median:.2f}, IQR = {IQR:.2f}')
+        progress_callback(
+            f'{mnemonic}: Median = {median:.2f}, IQR = {IQR:.2f}')
 
     # Calculating and printing MSE information including min, max, median, and IQR
     mse_min = mse_values.min()
@@ -152,11 +154,11 @@ def print_results(cluster, params_data, mse_values, X_mnemonics):
     mse_Q1 = mse_values.quantile(0.25)
     mse_Q3 = mse_values.quantile(0.75)
     mse_IQR = mse_Q3 - mse_Q1
-    print(
+    progress_callback(
         f'MSE: Min = {mse_min:.2f}, Max = {mse_max:.2f}, Median = {mse_median:.2f}, IQR = {mse_IQR:.2f}\n')
 
 
-def get_bounds_for_cluster(original_data_with_clusters, X_mnemonics, cluster):
+def get_bounds_for_cluster(original_data_with_clusters, X_mnemonics, cluster, expanding_factor=10000):
     """Generate bounds for the parameters based on the data in the cluster
     Except lithology, others have max value * 10000 to allow the simulation
     to explore the wide range of data"""
@@ -168,11 +170,24 @@ def get_bounds_for_cluster(original_data_with_clusters, X_mnemonics, cluster):
         data_for_cluster = original_data_with_clusters[original_data_with_clusters['cluster']
                                                        == cluster][column_header]
         bounds[mnemonic] = (data_for_cluster.min(), data_for_cluster.max(
-        ) * (10000 if mnemonic not in ['Si', 'Shale', 'Dolomite', 'Limestone'] else 1))
+        ) * (expanding_factor if mnemonic not in ['Si', 'Shale', 'Dolomite', 'Limestone'] else 1))
     return bounds
 
 
 def execute_monte_carlo_optimization(df_with_clusters, scalers_best_models, X_mnemonics, iterations):
+    """
+    Executes Monte Carlo optimization for each unique cluster in the given DataFrame.
+
+    Parameters:
+    df_with_clusters (pandas.DataFrame): DataFrame containing the data with cluster information.
+    scalers_best_models (dict): Dictionary containing the best models and scalers for each cluster.
+    X_mnemonics (list): List of feature names used in the model.
+    iterations (int): Number of iterations to perform in the Monte Carlo optimization.
+
+    Returns:
+    dict: A dictionary where each key is a cluster and the value is a dictionary containing the parameter ranges,
+        low mean squared errors (MSEs), scaler, and model for that cluster.
+    """
 
     clusters = {}
     for cluster in df_with_clusters['cluster'].unique():
