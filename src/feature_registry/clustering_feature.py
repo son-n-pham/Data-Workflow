@@ -14,7 +14,7 @@ class ClusteringFeature(Feature):
 
     def execute(self, df, feature_session_state):
 
-        clustered_columns, k = self.set_feature_parameters(
+        clustered_columns, k, auto_cluster = self.set_feature_parameters(
             st.session_state['cleaned_columns'],
             feature_session_state)
 
@@ -23,6 +23,7 @@ class ClusteringFeature(Feature):
         if clustered_columns and st.button("Proceed Clustering"):
             self.parameters['clustered_columns'] = clustered_columns
             self.parameters['k'] = k
+            self.parameters['auto_cluster'] = auto_cluster
             self.activated = True
 
             # Call the perform_kmeans function from the cluster module
@@ -44,12 +45,11 @@ class ClusteringFeature(Feature):
             # Update feature_session_state
             feature_session_state.parameters['clustered_columns'] = self.parameters['clustered_columns']
             feature_session_state.parameters['k'] = self.parameters['k']
+            feature_session_state.parameters['auto_cluster'] = self.parameters['auto_cluster']
             feature_session_state.parameters['silhouette_score'] = self.parameters['silhouette_score']
             feature_session_state.activated = self.activated
 
             if self.parameters['silhouette_score']:
-                st.write(
-                    f"self.parameters['silhouette_score'] is: {self.parameters['silhouette_score']}")
                 self.plot_silhouette_scores(
                     self.parameters['silhouette_score'])
 
@@ -75,16 +75,18 @@ class ClusteringFeature(Feature):
             feature_session_state.parameters.get('clustered_columns', []),
         )
 
-        disabled_k_slider = col1.checkbox(
-            "Select number of clusters automatically")
-        k = None if disabled_k_slider else col3.slider(
+        auto_cluster = col1.checkbox(
+            "Select number of clusters automatically",
+            value=feature_session_state.parameters["auto_cluster"] if feature_session_state.parameters.get("auto_cluster") else False)
+
+        k = None if auto_cluster else col1.slider(
             "Select k",
             min_value=config_constants['k_min'],
             max_value=config_constants['k_max'],
             value=3,
-            disabled=disabled_k_slider)
+            disabled=auto_cluster)
 
-        return clustered_columns, k
+        return clustered_columns, k, auto_cluster
 
     def plot_silhouette_scores(self, silhouette_scores):
         # plot silhouette score to scatter plot if silhouette_scores is not an empty list

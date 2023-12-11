@@ -174,7 +174,7 @@ def get_bounds_for_cluster(original_data_with_clusters, X_mnemonics, cluster, ex
     return bounds
 
 
-def execute_monte_carlo_optimization(df_with_clusters, scalers_best_models, X_mnemonics, iterations):
+def execute_monte_carlo_optimization(df_with_clusters, scalers_best_models, X_mnemonics, iterations, progress_callback=print):
     """
     Executes Monte Carlo optimization for each unique cluster in the given DataFrame.
 
@@ -183,6 +183,7 @@ def execute_monte_carlo_optimization(df_with_clusters, scalers_best_models, X_mn
     scalers_best_models (dict): Dictionary containing the best models and scalers for each cluster.
     X_mnemonics (list): List of feature names used in the model.
     iterations (int): Number of iterations to perform in the Monte Carlo optimization.
+    progress_callback (function): Function to call with progress information. Defaults to print.
 
     Returns:
     dict: A dictionary where each key is a cluster and the value is a dictionary containing the parameter ranges,
@@ -194,7 +195,7 @@ def execute_monte_carlo_optimization(df_with_clusters, scalers_best_models, X_mn
         bounds = get_bounds_for_cluster(
             df_with_clusters, X_mnemonics, cluster)
 
-        print(f"#### Seeking MSE min for cluster {cluster} #####")
+        progress_callback(f"#### Seeking MSE min for cluster {cluster} #####")
 
         scaler = scalers_best_models[cluster]['scaler']
         trained_model = scalers_best_models[cluster]['model']
@@ -205,7 +206,7 @@ def execute_monte_carlo_optimization(df_with_clusters, scalers_best_models, X_mn
         # Create a DataFrame from the low_mse_params for easier computation of median and IQR
         df_low_mse_params = pd.DataFrame(low_mse_params, columns=X_mnemonics)
         print_results(cluster, df_low_mse_params,
-                      pd.Series(low_mses), X_mnemonics)
+                      pd.Series(low_mses), X_mnemonics, progress_callback)
         clusters[int(cluster)] = {
             'param_ranges': param_ranges,
             'low_mses': low_mses,

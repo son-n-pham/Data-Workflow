@@ -27,9 +27,6 @@ class GraphFeature(Feature):
         else:
             raise ValueError(f"Unknown plot type: {self.plot_type}")
 
-        st.write(self.plot_type)
-        st.write(self.parameters)
-
         return fig
 
     def select_plot_type(self):
@@ -54,19 +51,6 @@ class GraphFeature(Feature):
             selected_columns[param] = cols[i].selectbox(
                 f"Select {param} column", columns, index=default_index, key=f"{param}_{self.name}_{self.created_at}_{i}"
             )
-
-        # for i, param in enumerate(self.plot_types[self.plot_type]):
-        #     # Place each select box in a separate column
-        #     if param not in self.parameters:
-        #         selected_columns[param] = cols[i].selectbox(
-        #             f"Select {param} column", columns, key=f"{param}_{self.name}_{self.created_at}_{i}"
-        #         )
-        #     else:
-        #         default_index = columns.index(
-        #             self.parameters[param]) if self.parameters[param] in columns else 0
-        #         selected_columns[param] = cols[i].selectbox(
-        #             f"Select {param} column", columns, index=default_index, key=f"{param}_{self.name}_{self.created_at}_{i}"
-        #         )
 
         self.parameters = selected_columns
 

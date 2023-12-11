@@ -8,6 +8,25 @@ from abc import ABC, abstractmethod
 
 
 class Feature(ABC):
+    """
+    Abstract base class for defining a feature.
+
+    Attributes:
+        name (str): The name of the feature.
+        type (str): The type of the feature.
+        description (str): A description of the feature.
+        parameters (dict): Parameters associated with the feature.
+        created_at (str): The timestamp when the feature was created.
+        activated (bool): Indicates if the feature is activated or not.
+
+    Methods:
+        set_feature_parameters: Abstract method to set the feature parameters.
+        execute: Executes the feature.
+        to_dict: Converts the feature to a dictionary.
+        from_dict: Creates a feature object from a dictionary.
+
+    """
+
     def __init__(self, name: str, type: str, description: str, parameters: dict, activated: bool = False):
         self.name = name
         self.type = type
@@ -21,10 +40,28 @@ class Feature(ABC):
         pass
 
     def execute(self, *args, **kwargs):
+        """
+        Executes the feature.
+
+        Args:
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Raises:
+            NotImplementedError: If the feature does not implement an execute method.
+
+        """
         raise NotImplementedError(
             "Each feature must implement an execute method.")
 
     def to_dict(self):
+        """
+        Converts the feature to a dictionary.
+
+        Returns:
+            dict: A dictionary representation of the feature.
+
+        """
         return {
             "name": self.name,
             "type": self.type,
@@ -34,6 +71,16 @@ class Feature(ABC):
 
     @classmethod
     def from_dict(cls, data):
+        """
+        Creates a feature object from a dictionary.
+
+        Args:
+            data (dict): A dictionary containing the feature data.
+
+        Returns:
+            Feature: A feature object created from the dictionary.
+
+        """
         return cls(
             name=data["name"],
             type=data["type"],

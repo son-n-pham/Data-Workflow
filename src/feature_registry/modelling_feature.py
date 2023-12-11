@@ -31,8 +31,6 @@ class ModellingFeature(Feature):
         # If the user has selected columns for X and y and clicked the "Proceed Modelling" button,
         # set the parameters and activate the feature
         if X_cols and y_col and st.button("Proceed Modelling"):
-            st.write(f"X_cols: {X_cols}")
-            st.write(f"y_col: {y_col}")
             st.write(df.head())
             self.parameters['X_cols'] = X_cols
             self.parameters['y_col'] = y_col
@@ -41,6 +39,7 @@ class ModellingFeature(Feature):
             # Perform optimization and get the best models for each cluster
             scalers_best_models = self.modelling(df, feature_session_state)
 
+            # TODO: Fix the hardcoding of the path
             # Ensure trained_models folder in temp_folder, if not create one
             ensure_directory_exists('temp_folder/trained_models')
 
@@ -56,15 +55,13 @@ class ModellingFeature(Feature):
             feature_session_state.parameters['y_col'] = self.parameters['y_col']
             feature_session_state.parameters['path_scalers_best_models'] = self.parameters['path_scalers_best_models']
             feature_session_state.activated = self.activated
-            st.write("self.parameters['path_scalers_best_models'] is: ",
-                     self.parameters['path_scalers_best_models'])
-            st.write(
-                feature_session_state.parameters['path_scalers_best_models'])
 
             scalers_best_models = self.load_saved_scalers_and_models(
                 feature_session_state.parameters['path_scalers_best_models'])
 
             return df, scalers_best_models
+
+        return df, None
 
     def load_saved_scalers_and_models(self, path_scalers_best_models):
         """
@@ -105,21 +102,8 @@ class ModellingFeature(Feature):
                 'scaler': f"temp_folder/trained_models/scaler_cluster_{cluster}.pkl",
                 'model': f"temp_folder/trained_models/model_cluster_{cluster}.pkl"
             }
-        st.write(
-            f"dict_path_scalers_best_models from save_scalers_and_model: {dict_path_scalers_best_models}")
-        return dict_path_scalers_best_models
 
-    # def set_scaler_best_models(self, clusters):
-    #     """
-    #     Set self.parameters['scalers_best_models'] to the file paths of trained models
-    #     and scalers for each cluster.
-    #     """
-    #     self.parameters['scalers_best_models'] = {}
-    #     for cluster in clusters:
-    #         self.parameters['scalers_best_models'][cluster] = {
-    #             'scaler': f"temp_folder/trained_models/scaler_cluster_{cluster}.pkl",
-    #             'model': f"temp_folder/trained_models/model_cluster_{cluster}.pkl"
-    #         }
+        return dict_path_scalers_best_models
 
     def set_feature_parameters(self, cleaned_columns, feature_session_state):
         """

@@ -44,9 +44,6 @@ def perform_kmeans(df, columns, k=None, k_min=2, k_max=11):
     kmeans = KMeans(n_clusters=k, random_state=1)
     kmeans.fit(data)
 
-    st.write(
-        f'Silhouette score in cluster.py: {silhouette_scores}')
-
     # Add the cluster labels to the original DataFrame if there is no cluster column
     # already, otherwise replace the existing cluster column
     df['cluster ()'] = kmeans.labels_

@@ -20,9 +20,9 @@ st.set_page_config(
 
 def main():
 
-    # Create a button, when clicking, the session state will be shown by st.write()
-    if st.button("Show Session State"):
-        st.write(st.session_state)
+    # # DEBUG: Create a button, when clicking, the session state will be shown by st.write()
+    # if st.button("Show Session State"):
+    #     st.write(st.session_state)
 
     ensure_key_in_session_state('loaded_file', None)
     ensure_key_in_session_state('is_df_cleaned', False)
@@ -63,10 +63,12 @@ def main():
         df = load_file_standardize_header(
             st.session_state['loaded_file'])
 
-        st.write("Add columns BIT_DIAMETER (in), DOC (in/rev), Mu (), and MSE (ksi)")
-
-        df = add_columns(df)
-
+        if st.session_state['loaded_count'] == 0:
+            # DEBUG
+            # st.write(
+            #     "Add columns BIT_DIAMETER (in), DOC (in/rev), Mu (), and MSE (ksi)")
+            df = add_columns(df)
+        # st.write(df.columns)
         st.write(df)
 
         st.markdown("---")
@@ -151,8 +153,15 @@ def main():
                 elif isinstance(feature, ModellingFeature):
                     df, scalers_best_models = feature.execute(
                         df, st.session_state['features'][i])
-                    if feature.activated:
-                        st.success("Modelling completed!")
+
+                # Check if feature is PredictingMSEMinFeature
+                elif isinstance(feature, PredictingMSEMinFeature):
+                    df = feature.execute(
+                        df, scalers_best_models, st.session_state['features'][i])
+
+                elif isinstance(feature, OptimizingParametersFeature):
+                    df = feature.execute(
+                        df, scalers_best_models, st.session_state['features'][i])
 
                 st.markdown("---")  # Separator after each feature
 
@@ -160,12 +169,6 @@ def main():
 
         selected_feature_name = col1.selectbox(
             "Select feature to add", list(FEATURE_REGISTRY.keys()))
-
-        # For DEBUG
-        show_df = col2.button(
-            "Open df", key=f"open_df_{st.session_state['loaded_count']}")
-        if show_df:
-            st.write(df)
 
         if selected_feature_name:
 
