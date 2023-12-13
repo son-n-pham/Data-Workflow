@@ -13,7 +13,7 @@ class PredictingMSEMinFeature(Feature):
 
     Attributes
     ----------
-    name : str
+    name : str  
         the name of the feature
     parameters : dict
         a dictionary of parameters for the feature

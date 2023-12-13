@@ -10,6 +10,9 @@ temp_folder/*
 !projects/README.md
 projects/*
 
+# Streamlit
+.streamlit
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
