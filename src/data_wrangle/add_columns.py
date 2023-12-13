@@ -18,7 +18,7 @@ def add_columns(df):
     add_column_if_not_exists(['ROP', 'BIT_RPM'], 'DOC (in/rev)',
                              lambda df, cols: df[cols['ROP']] * 39.3701 / 60 / df[cols['BIT_RPM']])
 
-    add_column_if_not_exists(['WOB', 'TORQUE', 'BIT_DIAMETER'], 'Mu',
+    add_column_if_not_exists(['WOB', 'TORQUE', 'BIT_DIAMETER'], 'Mu ()',
                              lambda df, cols: df[cols['TORQUE']] / (df[cols['WOB']] * df[cols['BIT_DIAMETER']] / 36))
 
     add_column_if_not_exists(['WOB', 'TORQUE', 'BIT_RPM', 'ROP', 'BIT_DIAMETER'], 'MSE (ksi)',

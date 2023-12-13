@@ -17,7 +17,10 @@ each_project_folders = {
 }
 
 config_constants = {
-    'bit_diameter': 8.5
+    'bit_diameter': 8.5,
+    # clustering
+    'k_min': 2,
+    'k_max': 11,
 }
 
 
@@ -35,7 +38,8 @@ header_patterns = {
     "ROP": r".*ROP.*|.*PENETRATE.*",
     "DOC": r".*DOC.*",
     "WOB": r".*WOB.*|.*BITLOAD.*",
-    "MSE": r".*MSE.*|SE.*",
+    "MSE": r"^MSE$|^SE$",
+    "MSE_min": r"^MSE_min$|^SE_min$",
     "SURFACE_RPM": r".*SURF.*RPM.*|.*SURFACE.*RPM.*",
     "MOTOR_RPM": r".*MOTOR.*RPM.*",
     "BIT_RPM": r".*BIT.*RPM.*|.*TOTAL.*RPM.*|.*RPM.*TOTAL|.*RPM.*BIT.*|.*RPM.*",
@@ -50,8 +54,10 @@ header_patterns = {
     "Limestone": r".*Limestone.*",
     "BIT_DIAMETER": r"BIT_DIAMETER",
     "Mu": r".*Mu.*",
-    "VOLUME": None,  # We'll set this dynamically in the get_volume_pattern function
+    "VOLUME": None,
+    # We'll set this dynamically in the get_volume_pattern function
     # ... rest of your patterns ...
+    "cluster": r".*cluster.*"
 }
 
 

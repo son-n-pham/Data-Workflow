@@ -68,6 +68,20 @@ def analyze_rpm_context(mnemonic, unit, rpm_values):
         return "RPM__unidentified (rpm)"
 
 
+# def standardize_mnemonics(df):
+#     """
+#     Apply mnemonic standardization to all column headers in the DataFrame.
+#     """
+#     # Extract average RPM values for context analysis
+#     rpm_values = {col: df[col].mean(
+#     ) for col in df.columns if 'RPM' in col.split(' (')[0].upper()}
+
+#     # Update the column headers based on the standardized mnemonics
+#     new_columns = [map_mnemonic(col.split(' (')[0], col.split(
+#         ' (')[1].rstrip(')'), rpm_values) for col in df.columns]
+
+#     df.columns = new_columns
+#     return df
 def standardize_mnemonics(df):
     """
     Apply mnemonic standardization to all column headers in the DataFrame.
@@ -77,7 +91,12 @@ def standardize_mnemonics(df):
     ) for col in df.columns if 'RPM' in col.split(' (')[0].upper()}
 
     # Update the column headers based on the standardized mnemonics
-    new_columns = [map_mnemonic(col.split(' (')[0], col.split(
-        ' (')[1].rstrip(')'), rpm_values) for col in df.columns]
+    new_columns = []
+    for col in df.columns:
+        mnemonic = col.split(' (')[0]
+        unit = col.split(' (')[1].rstrip(')') if ' (' in col else ""
+        unit = "" if "Unnamed" in unit else unit
+        new_columns.append(map_mnemonic(mnemonic, unit, rpm_values))
+
     df.columns = new_columns
     return df

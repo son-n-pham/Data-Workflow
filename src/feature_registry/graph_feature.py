@@ -21,33 +21,36 @@ class GraphFeature(Feature):
 
     def execute(self, df):
         if self.plot_type == "2D Scatter Plot":
-            self.plot_2d_scatter(df)
+            fig = self.plot_2d_scatter(df)
         elif self.plot_type == "3D Scatter Plot":
-            self.plot_3d_scatter(df)
+            fig = self.plot_3d_scatter(df)
         else:
             raise ValueError(f"Unknown plot type: {self.plot_type}")
 
-    def select_plot_type(self):
-        self.plot_type = st.radio("Select plot type", list(
-            self.plot_types.keys()), key=f"plot_type_{self.name}_{self.created_at}")
+        return fig
 
-    def select_columns(self, columns):
+    def select_plot_type(self):
+
+        if self.activated:
+            default_plot_type = list(
+                self.plot_types.keys()).index(self.plot_type)
+        else:
+            default_plot_type = 0
+
+        self.plot_type = st.radio("Select plot type", list(
+            self.plot_types.keys()), default_plot_type, key=f"plot_type_{self.name}_{self.created_at}")
+
+    def set_feature_parameters(self, columns):
         selected_columns = {}
         # Create a row of columns
         cols = st.columns(len(self.plot_types[self.plot_type]))
 
         for i, param in enumerate(self.plot_types[self.plot_type]):
-            # Place each select box in a separate column
-            if param not in self.parameters:
-                selected_columns[param] = cols[i].selectbox(
-                    f"Select {param} column", columns, key=f"{param}_{self.name}_{self.created_at}_{i}"
-                )
-            else:
-                default_index = columns.index(
-                    self.parameters[param]) if self.parameters[param] in columns else 0
-                selected_columns[param] = cols[i].selectbox(
-                    f"Select {param} column", columns, index=default_index, key=f"{param}_{self.name}_{self.created_at}_{i}"
-                )
+            default_index = columns.index(
+                self.parameters[param]) if param in self.parameters and self.parameters[param] in columns else 0
+            selected_columns[param] = cols[i].selectbox(
+                f"Select {param} column", columns, index=default_index, key=f"{param}_{self.name}_{self.created_at}_{i}"
+            )
 
         self.parameters = selected_columns
 
@@ -58,7 +61,8 @@ class GraphFeature(Feature):
         if df_copy is not None:
             # Call the plot_2d_scatter function from the plot module
             fig = plot.plot_2d_scatter(df_copy, self.parameters)
-            st.plotly_chart(fig)
+            return fig
+            # st.plotly_chart(fig)
 
     def plot_3d_scatter(self, df):
         df_copy = prepare_data_for_plotting(df, [self.parameters['x'], self.parameters['y'], self.parameters['z'],
@@ -67,7 +71,8 @@ class GraphFeature(Feature):
         if df_copy is not None:
             # Call the plot_3d_scatter function from the plot module
             fig = plot.plot_3d_scatter(df_copy, self.parameters)
-            st.plotly_chart(fig)
+            return fig
+            # st.plotly_chart(fig)
 
     def to_dict(self):
         data = super().to_dict()

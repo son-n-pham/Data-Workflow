@@ -1,1 +1,1 @@
-This folder store all saved projects.
+This folder stores all saved projects.
