@@ -1,9 +1,6 @@
 from datetime import datetime
 import pandas as pd
 import streamlit as st
-from pydantic import BaseModel
-
-
 from .features import Feature
 from cluster import perform_kmeans
 from config import config_constants
@@ -11,16 +8,9 @@ from file_handle import save_clustered_df_to_file_and_update_session_state, load
 
 
 class ClusteringFeature(Feature):
-    def __init__(self, name,
-                 parameters=None,
-                 created_at=None,
-                 activated=False):
-        super().__init__(name=name,
-                         feature_type="Clustering",
-                         description="Performs clustering on the data",
-                         parameters=parameters or {},
-                         created_at=created_at or datetime.now().isoformat(),
-                         activated=activated)
+    def __init__(self, name: str, parameters: dict = None):
+        super().__init__(name, "Clustering", "Performs clustering on the data", parameters)
+        self.parameters = parameters or {}
 
     def execute(self, df, feature_session_state):
 
@@ -65,9 +55,6 @@ class ClusteringFeature(Feature):
 
             st.success("Clustering has been done!")
 
-            # # Deserialize this feature (ClusteringFeature) and print it out to debug
-            # print(ClusteringFeature.parse_raw(self.json()))
-
             return df
 
     def kmeans_clustering(self, df):
@@ -110,3 +97,23 @@ class ClusteringFeature(Feature):
 
             # Plot the silhouette scores
             st.line_chart(silhouette_scores_df)
+
+    def to_dict(self):
+        data = super().to_dict()
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        # Create a new GraphFeature object
+        feature = cls(
+            name=data["name"],
+            parameters=data["parameters"]
+        )
+
+        # Set the properties of the GraphFeature object based on the values in the dictionary
+        feature.description = data["description"]
+        feature.created_at = datetime.strptime(
+            data["created_at"], "%Y-%m-%dT%H:%M:%S.%f")
+        feature.activated = data["activated"]
+
+        return feature

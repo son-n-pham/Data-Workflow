@@ -1,23 +1,25 @@
 from .features import Feature
 import streamlit as st
 import plot
+# from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime
+from typing import List, Dict, Optional
 
 # Assuming this is where prepare_data_for_plotting is defined
 from data_wrangle import prepare_data_for_plotting
 
+plot_types = {
+    "2D Scatter Plot": ["x", "y", "color", "size"],
+    "3D Scatter Plot": ["x", "y", "z", "color", "size"],
+    # Add more plot types and their parameters here
+}
+
 
 class GraphFeature(Feature):
-    plot_types = {
-        "2D Scatter Plot": ["x", "y", "color", "size"],
-        "3D Scatter Plot": ["x", "y", "z", "color", "size"],
-        # Add more plot types and their parameters here
-    }
-
-    def __init__(self, name: str, parameters: dict = None, plot_type: str = None):
-        super().__init__(name, "Graph", "Plots a graph based on the selected parameters", parameters)
-        self.plot_type = plot_type
-        self.parameters = parameters or {}
+    def __init__(self, name, parameters=None, created_at=None, activated=False, plot_type: str = None):
+        super().__init__(name=name, feature_type="Graph", description="Plots a graph based on the selected parameters",
+                         parameters=parameters or {}, created_at=created_at or datetime.now().isoformat(), activated=activated)
 
     def execute(self, df):
         if self.plot_type == "2D Scatter Plot":
@@ -73,25 +75,3 @@ class GraphFeature(Feature):
             fig = plot.plot_3d_scatter(df_copy, self.parameters)
             return fig
             # st.plotly_chart(fig)
-
-    def to_dict(self):
-        data = super().to_dict()
-        data["plot_type"] = self.plot_type
-        return data
-
-    @classmethod
-    def from_dict(cls, data):
-        # Create a new GraphFeature object
-        feature = cls(
-            name=data["name"],
-            parameters=data["parameters"],
-            plot_type=data["plot_type"]
-        )
-
-        # Set the properties of the GraphFeature object based on the values in the dictionary
-        feature.description = data["description"]
-        feature.created_at = datetime.strptime(
-            data["created_at"], "%Y-%m-%dT%H:%M:%S.%f")
-        feature.activated = data["activated"]
-
-        return feature

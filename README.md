@@ -26,6 +26,17 @@ This project provides a comprehensive workflow for data processing, visualizatio
 - `main.ipynb`: Jupyter notebook for the main application.
 - `app.py`: Python script for the main application written with Streamlit.
 
+## Key Technologies Used in This App:
+
+- Streamlit for the GUI
+- Scikit-learn for machine learning
+- Pandas for data processing
+- Matplotlib, seaborns and plotly for data visualization
+- Numpy for numerical computing
+- Scipy for scientific computing
+- Modulerize the app with several independent modules
+- Pydantic for data validation
+
 ## Getting Started
 
 Streamlit is used as the GUI for the app.

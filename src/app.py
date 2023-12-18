@@ -1,4 +1,5 @@
 
+import warnings
 import streamlit as st
 import pandas as pd
 import os
@@ -18,6 +19,8 @@ from utils import ensure_directory_exists, list_sub_folders, copy_folder, delete
 st.set_page_config(
     page_title="MSE Analysis", layout="wide", page_icon=":bar_chart:"
 )
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 def main():
@@ -148,22 +151,22 @@ def main():
                             st.plotly_chart(fig, use_container_width=True)
 
                 # Check if feature is ClusteringFeature
-                elif isinstance(feature, ClusteringFeature):
+                if isinstance(feature, ClusteringFeature):
                     df = feature.execute(df, st.session_state["features"][i])
 
-                # Check if feature is ModellingFeature
-                elif isinstance(feature, ModellingFeature):
-                    df, scalers_best_models = feature.execute(
-                        df, st.session_state['features'][i])
+                # # Check if feature is ModellingFeature
+                # elif isinstance(feature, ModellingFeature):
+                #     df, scalers_best_models = feature.execute(
+                #         df, st.session_state['features'][i])
 
-                # Check if feature is PredictingMSEMinFeature
-                elif isinstance(feature, PredictingMSEMinFeature):
-                    df = feature.execute(
-                        df, scalers_best_models, st.session_state['features'][i])
+                # # Check if feature is PredictingMSEMinFeature
+                # elif isinstance(feature, PredictingMSEMinFeature):
+                #     df = feature.execute(
+                #         df, scalers_best_models, st.session_state['features'][i])
 
-                elif isinstance(feature, OptimizingParametersFeature):
-                    df = feature.execute(
-                        df, scalers_best_models, st.session_state['features'][i])
+                # elif isinstance(feature, OptimizingParametersFeature):
+                #     df = feature.execute(
+                #         df, scalers_best_models, st.session_state['features'][i])
 
                 st.markdown("---")  # Separator after each feature
 
