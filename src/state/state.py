@@ -1,4 +1,4 @@
-import objgraph
+# import objgraph
 from datetime import datetime
 import os
 import streamlit as st
@@ -36,65 +36,6 @@ def clear_session_state_values():
     st.session_state.clear()
     for key in keys:
         st.session_state[key] = None
-
-
-# def save_state_file_to_json(state_file='state.json', folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
-#     """
-#     Save the current session state to a JSON file.
-
-#     This function serializes the state to a JSON string using the json.dumps function,
-#     with the default parameter set to serialize_feature_obj to handle Feature objects.
-
-#     Args:
-#         state_file (str, optional): The name of the file to save the state to. Defaults to 'state.json'.
-#         folder (str, optional): The folder to save the file in. Defaults to the state folder in the temp directory.
-#     """
-#     file_path = os.path.join(folder, state_file)
-#     ensure_directory_exists(folder)
-#     dict_session_state = dict(st.session_state)
-
-#     with open(file_path, "w") as file:
-#         json.dump(dict_session_state, file, default=serialize_feature_obj)
-
-
-def find_circular_ref(obj):
-    # Show the top 10 objects that have the most references to them
-    objgraph.show_most_common_types(limit=10)
-
-    # Show a graph of all objects that reference `obj` and lead to a circular reference
-    objgraph.show_backrefs([obj], max_depth=10, filename='backrefs.png')
-# def save_state_file_to_json(state_file='state.json', folder=os.path.join(temp_directory, each_project_folders["state_folder"])):
-#     """
-#     Save the current session state to a JSON file.
-
-#     This function serializes the state to a JSON string using the json.dumps function,
-#     with the default parameter set to serialize_feature_obj to handle Feature objects.
-
-#     Args:
-#         state_file (str, optional): The name of the file to save the state to. Defaults to 'state.json'.
-#         folder (str, optional): The folder to save the file in. Defaults to the state folder in the temp directory.
-#     """
-#     file_path = os.path.join(folder, state_file)
-#     ensure_directory_exists(folder)
-#     dict_session_state = dict(st.session_state)
-
-#     # Use the function before json.dumps
-#     find_circular_ref(dict_session_state)
-
-#     try:
-#         json_str = json.dumps(dict_session_state,
-#                               default=serialize_feature_obj)
-#         print(json_str)
-#     except Exception as e:
-#         # Write e to log file with date and time
-#         print("***********************************")
-#         print("Error during JSON serialization:", e)
-#         print("***********************************")
-#         st.write("Error during JSON serialization:", e)
-#         return
-
-#     with open(file_path, "w") as file:
-#         file.write(json_str)
 
 
 def feature_to_dict(feature):

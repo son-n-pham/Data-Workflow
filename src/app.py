@@ -133,26 +133,14 @@ def main():
 
                 # Check if feature is GraphFeature
                 if isinstance(feature, GraphFeature):
-                    feature.select_plot_type()
-                    feature.set_feature_parameters(cleaned_columns)
 
-                    # Plot button
-                    button_key_plot = f"plot_{feature.created_at}_{st.session_state['loaded_count']}_{i}"
-                    plot_clicked = st.button("Plot", key=button_key_plot)
-
-                    if plot_clicked:
-                        feature.activated = True
-                        # Update the feature in the session state
-                        st.session_state["features"][i] = feature
-
-                    if feature.activated:
-                        with st.spinner(f"Plotting {feature.plot_type}..."):
-                            fig = feature.execute(df)
-                            st.plotly_chart(fig, use_container_width=True)
+                    fig = feature.execute(df, cleaned_columns, feature)
+                    if fig:
+                        st.plotly_chart(fig, use_container_width=True)
 
                 # Check if feature is ClusteringFeature
-                if isinstance(feature, ClusteringFeature):
-                    df = feature.execute(df, st.session_state["features"][i])
+                elif isinstance(feature, ClusteringFeature):
+                    df = feature.execute(df, feature)
 
                 # # Check if feature is ModellingFeature
                 # elif isinstance(feature, ModellingFeature):

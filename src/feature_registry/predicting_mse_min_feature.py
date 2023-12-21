@@ -181,18 +181,6 @@ class PredictingMSEMinFeature(Feature):
         data = super().to_dict()
         return data
 
-    # @classmethod
-    # def from_dict(cls, data):
-
-    #     # Create a new ModellingFeature
-    #     feature = cls(name=data["name"], parameters=data["parameters"])
-
-    #     feature.description = data["description"]
-    #     feature.created_at = datetime.strptime(
-    #         data["created_at"], "%Y-%m-%dT%H:%M:%S.%f")
-    #     feature.activated = data["activated"]
-
-    #     return feature
     @classmethod
     def from_dict(cls, data):
         """

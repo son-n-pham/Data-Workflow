@@ -1,9 +1,11 @@
 from datetime import datetime
 import streamlit as st
 import pickle
+import os
 from .features import Feature
 from ml_models import perform_optimization
 from utils import ensure_directory_exists
+from config import temp_directory, each_project_folders
 
 
 class ModellingFeature(Feature):
@@ -12,13 +14,21 @@ class ModellingFeature(Feature):
     It is used to perform training of ML models for each cluster.
     """
 
-    def __init__(self, name: str, parameters: dict = None):
-        """
-        Initialize ModellingFeature with name and parameters.
-        """
-        super().__init__(name, "Modelling",
-                         "Performance training ML models for each cluster", parameters)
-        self.parameters = parameters or {}
+    def __init__(self, name, parameters=None, created_at=None, activated=False):
+        super().__init__(name=name,
+                         feature_type="Modelling",
+                         description="Performance training ML models for each cluster",
+                         parameters=parameters or {},
+                         created_at=created_at or datetime.now().isoformat(),
+                         activated=activated)
+
+    # def __init__(self, name: str, parameters: dict = None):
+    #     """
+    #     Initialize ModellingFeature with name and parameters.
+    #     """
+    #     super().__init__(name, "Modelling",
+    #                      "Performance training ML models for each cluster", parameters)
+    #     self.parameters = parameters or {}
 
     def execute(self, df, feature_session_state):
         """
@@ -39,9 +49,9 @@ class ModellingFeature(Feature):
             # Perform optimization and get the best models for each cluster
             scalers_best_models = self.modelling(df, feature_session_state)
 
-            # TODO: Fix the hardcoding of the path
-            # Ensure trained_models folder in temp_folder, if not create one
-            ensure_directory_exists('temp_folder/trained_models')
+
+            ensure_directory_exists(os.path.join(temp_directory, 
+                                                 each_project_folders['trained_models_folder'])))
 
             # Save the trained models and corresponding scaler for each cluster
             self.parameters['path_scalers_best_models'] = self.save_scalers_and_models(
@@ -50,16 +60,17 @@ class ModellingFeature(Feature):
         # If the feature is activated, set self.parameters['scalers_best_models'] to the
         # file paths of trained models and scalers for each cluster if that has not been done
         # already
-        if self.activated:
+        if self.activated or feature_session_state.activated:
             feature_session_state.parameters['X_cols'] = self.parameters['X_cols']
             feature_session_state.parameters['y_col'] = self.parameters['y_col']
             feature_session_state.parameters['path_scalers_best_models'] = self.parameters['path_scalers_best_models']
             feature_session_state.activated = self.activated
 
+
             scalers_best_models = self.load_saved_scalers_and_models(
                 feature_session_state.parameters['path_scalers_best_models'])
 
-            return df, scalers_best_models
+            return df, scalers_best_models, feature_session_state.parameters['X_cols'], feature_session_state.parameters['y_col']
 
         return df, None
 
@@ -135,25 +146,25 @@ class ModellingFeature(Feature):
                     df, feature_session_state.parameters['X_cols'], feature_session_state.parameters['y_col'], progress_callback=st.write)
         return scalers_best_models
 
-    def to_dict(self):
-        """
-        Convert the ModellingFeature to a dictionary.
-        """
-        data = super().to_dict()
-        return data
+    # def to_dict(self):
+    #     """
+    #     Convert the ModellingFeature to a dictionary.
+    #     """
+    #     data = super().to_dict()
+    #     return data
 
-    @classmethod
-    def from_dict(cls, data):
-        """
-        Create a new ModellingFeature object from a dictionary.
-        """
-        # Create a new ModellingFeature object
-        feature = cls(name=data["name"], parameters=data["parameters"])
+    # @classmethod
+    # def from_dict(cls, data):
+    #     """
+    #     Create a new ModellingFeature object from a dictionary.
+    #     """
+    #     # Create a new ModellingFeature object
+    #     feature = cls(name=data["name"], parameters=data["parameters"])
 
-        # Set the properties of the ModellingFeature object based on the values in the dictionary
-        feature.description = data["description"]
-        feature.created_at = datetime.strptime(
-            data["created_at"], "%Y-%m-%dT%H:%M:%S.%f")
-        feature.activated = data["activated"]
+    #     # Set the properties of the ModellingFeature object based on the values in the dictionary
+    #     feature.description = data["description"]
+    #     feature.created_at = datetime.strptime(
+    #         data["created_at"], "%Y-%m-%dT%H:%M:%S.%f")
+    #     feature.activated = data["activated"]
 
-        return feature
+    #     return feature
